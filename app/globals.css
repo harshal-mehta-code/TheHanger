@@ -15,6 +15,8 @@
   --color-sage-soft: #edf2ea;
   --color-gold: #c69b3e;
   --color-gold-soft: #fbf1dc;
+  /* Readable text on a gold-soft chip — the accent itself is too pale there. */
+  --color-gold-ink: #8a6a1f;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -26,9 +28,38 @@
   --shadow-sheet: 0 24px 70px -20px rgb(32 26 25 / 0.35);
 }
 
+/**
+ * Dark palette. Roles stay identical — only the values swap — so every
+ * component that uses the tokens follows without a single dark: variant.
+ * `bone` becomes the deep ground, `shell` the raised card, `ink` the text.
+ */
+@layer theme {
+  :root[data-theme="dark"] {
+    --color-bone: #16130f;
+    --color-bone-deep: #221d18;
+    --color-shell: #1e1a16;
+    --color-ink: #f2eae0;
+    --color-ink-soft: #d3c7b9;
+    --color-muted: #9d9184;
+    --color-line: #322b24;
+    --color-berry: #e07d9c;
+    --color-berry-deep: #f0a3ba;
+    --color-berry-soft: #3a222b;
+    --color-sage: #9dbb93;
+    --color-sage-soft: #232c20;
+    --color-gold: #dcb464;
+    --color-gold-soft: #322913;
+    --color-gold-ink: #e8c47a;
+  }
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
   }
 
   body {
@@ -40,6 +71,17 @@
       radial-gradient(circle at 12% -5%, rgb(178 58 98 / 0.06), transparent 42%),
       radial-gradient(circle at 92% 0%, rgb(198 155 62 / 0.07), transparent 38%);
     background-attachment: fixed;
+  }
+
+  :root[data-theme="dark"] body {
+    background-image:
+      radial-gradient(circle at 12% -5%, rgb(224 125 156 / 0.09), transparent 45%),
+      radial-gradient(circle at 92% 0%, rgb(220 180 100 / 0.07), transparent 40%);
+  }
+
+  /* Native controls (date pickers, selects) inherit the surface, not white. */
+  :root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
   }
 
   ::selection {
@@ -137,7 +179,7 @@
   .chip[data-active="true"]:hover {
     background: var(--color-berry-deep);
     border-color: var(--color-berry-deep);
-    color: #fff;
+    color: var(--color-bone);
   }
 
   .btn-primary {

@@ -13,6 +13,8 @@ interface Props {
   onAdd?: () => void;
   subtitle?: string;
   onNotify: (message: string) => void;
+  /** Offered alongside backup/restore in the settings menu. */
+  onQuickAdd?: () => void;
   searchRef?: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -28,6 +30,7 @@ export default function AppHeader({
   onAdd,
   subtitle,
   onNotify,
+  onQuickAdd,
   searchRef,
 }: Props) {
   const pathname = usePathname();
@@ -66,7 +69,7 @@ export default function AppHeader({
             </div>
           )}
 
-          <SettingsMenu onNotify={onNotify} />
+          <SettingsMenu onNotify={onNotify} onQuickAdd={onQuickAdd} />
 
           {onAdd && (
             <button type="button" onClick={onAdd} className="btn-primary">

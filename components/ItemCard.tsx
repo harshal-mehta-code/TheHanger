@@ -64,13 +64,13 @@ export default function ItemCard({
           )}
 
           {!item.archived && !status.badge && neglected && (
-            <span className="absolute left-2.5 top-2.5 rounded-full bg-gold-soft/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a6a1f] backdrop-blur-sm">
+            <span className="absolute left-2.5 top-2.5 rounded-full bg-gold-soft/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-gold-ink backdrop-blur-sm">
               {days === null ? "Unworn" : "Needs love"}
             </span>
           )}
 
           {justWorn && (
-            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage/95 py-2 text-xs font-semibold text-white">
+            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage/95 py-2 text-xs font-semibold text-bone">
               <CheckIcon className="h-4 w-4" /> Logged for today
             </span>
           )}
@@ -124,8 +124,8 @@ export default function ItemCard({
           aria-pressed={item.favorite}
           className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
             item.favorite
-              ? "bg-berry text-white shadow-sm"
-              : "bg-white/85 text-ink-soft opacity-0 hover:bg-white group-hover:opacity-100 focus-visible:opacity-100"
+              ? "bg-berry text-bone shadow-sm"
+              : "bg-shell/85 text-ink-soft opacity-0 hover:bg-shell group-hover:opacity-100 focus-visible:opacity-100"
           }`}
         >
           <HeartIcon filled={item.favorite} className="h-4 w-4" />
@@ -135,7 +135,7 @@ export default function ItemCard({
           type="button"
           onClick={onWear}
           aria-label={`Log that ${item.name} was worn today`}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 text-ink-soft opacity-0 backdrop-blur-sm transition-all hover:bg-sage hover:text-white group-hover:opacity-100 focus-visible:opacity-100"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-0 backdrop-blur-sm transition-all hover:bg-sage hover:text-bone group-hover:opacity-100 focus-visible:opacity-100"
           title="Wore it today"
         >
           <CheckIcon className="h-4 w-4" />

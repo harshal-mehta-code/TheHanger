@@ -125,7 +125,7 @@ export default function OutfitDetail({
             aria-label={outfit.favorite ? "Unfavourite" : "Favourite"}
             className={`mt-6 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
               outfit.favorite
-                ? "bg-berry text-white"
+                ? "bg-berry text-bone"
                 : "border border-line bg-shell text-ink-soft hover:border-ink"
             }`}
           >
@@ -147,7 +147,7 @@ export default function OutfitDetail({
             </span>
           )}
           {blocked.length > 0 && (
-            <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-[#8a6a1f]">
+            <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-gold-ink">
               {blocked.length} not ready to wear
             </span>
           )}

@@ -242,7 +242,7 @@ export default function OutfitEditor({
                           {piece.name}
                         </span>
                         {picked && (
-                          <span className="animate-pop absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-berry text-white">
+                          <span className="animate-pop absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-berry text-bone">
                             <CheckIcon className="h-3.5 w-3.5" />
                           </span>
                         )}

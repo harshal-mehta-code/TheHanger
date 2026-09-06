@@ -171,8 +171,8 @@ export default function ItemDetail({
             // Bottom corner keeps it clear of the sheet's floating close button.
             className={`absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition-colors ${
               item.favorite
-                ? "bg-berry text-white"
-                : "bg-white/88 text-ink-soft hover:bg-white"
+                ? "bg-berry text-bone"
+                : "bg-shell/88 text-ink-soft hover:bg-shell"
             }`}
           >
             <HeartIcon filled={item.favorite} className="h-5 w-5" />
@@ -225,7 +225,7 @@ export default function ItemDetail({
             </span>
             )}
             {item.wishlist && (
-              <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-[#8a6a1f]">
+              <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-gold-ink">
                 On the wishlist
               </span>
             )}

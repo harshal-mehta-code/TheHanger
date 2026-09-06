@@ -6,6 +6,7 @@ import FilterBar from "@/components/FilterBar";
 import ItemCard from "@/components/ItemCard";
 import ItemDetail from "@/components/ItemDetail";
 import ItemEditor from "@/components/ItemEditor";
+import QuickAdd from "@/components/QuickAdd";
 import AppHeader from "@/components/AppHeader";
 import { HangerMark, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { useCloset } from "@/lib/store";
@@ -19,7 +20,11 @@ import {
 } from "@/lib/wardrobe";
 import { SEASON_LABEL } from "@/lib/taxonomy";
 
-type Editing = { mode: "new" } | { mode: "edit"; item: Item } | null;
+type Editing =
+  | { mode: "new" }
+  | { mode: "edit"; item: Item }
+  | { mode: "quick" }
+  | null;
 
 export default function ClosetPage() {
   const {
@@ -120,6 +125,7 @@ export default function ClosetPage() {
             : "Your wardrobe, beautifully kept"
         }
         onNotify={flash}
+        onQuickAdd={() => setEditing({ mode: "quick" })}
       />
 
       {error && (
@@ -136,6 +142,7 @@ export default function ClosetPage() {
       ) : !hasCloset ? (
         <EmptyCloset
           onAdd={() => setEditing({ mode: "new" })}
+          onQuickAdd={() => setEditing({ mode: "quick" })}
           onSample={async () => {
             const n = await seedSample();
             flash(`Added ${n} sample pieces to explore.`);
@@ -238,6 +245,23 @@ export default function ClosetPage() {
         />
       )}
 
+      {editing?.mode === "quick" && (
+        <QuickAdd
+          onClose={() => setEditing(null)}
+          onSave={async (entries) => {
+            for (const { draft, photo } of entries) {
+              await addItem(
+                { ...draft, wishlist: filters.scope === "wishlist" },
+                photo,
+              );
+            }
+            flash(
+              `Added ${entries.length} ${entries.length === 1 ? "piece" : "pieces"}.`,
+            );
+          }}
+        />
+      )}
+
       {openItem && !editing && (
         <ItemDetail
           item={openItem}
@@ -301,9 +325,11 @@ function SkeletonGrid() {
 
 function EmptyCloset({
   onAdd,
+  onQuickAdd,
   onSample,
 }: {
   onAdd: () => void;
+  onQuickAdd: () => void;
   onSample: () => Promise<void>;
 }) {
   const [seeding, setSeeding] = useState(false);
@@ -324,6 +350,9 @@ function EmptyCloset({
         <button type="button" onClick={onAdd} className="btn-primary">
           <SparkleIcon className="h-4 w-4" />
           Add your first piece
+        </button>
+        <button type="button" onClick={onQuickAdd} className="btn-ghost">
+          Add a batch of photos
         </button>
         <button
           type="button"

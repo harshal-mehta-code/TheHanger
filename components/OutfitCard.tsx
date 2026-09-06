@@ -81,7 +81,7 @@ export default function OutfitCard({
           )}
 
           {justWorn && (
-            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage/95 py-2 text-xs font-semibold text-white">
+            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage/95 py-2 text-xs font-semibold text-bone">
               <CheckIcon className="h-4 w-4" /> Logged for today
             </span>
           )}
@@ -122,8 +122,8 @@ export default function OutfitCard({
           aria-pressed={outfit.favorite}
           className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
             outfit.favorite
-              ? "bg-berry text-white shadow-sm"
-              : "bg-white/85 text-ink-soft opacity-0 hover:bg-white group-hover:opacity-100 focus-visible:opacity-100"
+              ? "bg-berry text-bone shadow-sm"
+              : "bg-shell/85 text-ink-soft opacity-0 hover:bg-shell group-hover:opacity-100 focus-visible:opacity-100"
           }`}
         >
           <HeartIcon filled={outfit.favorite} className="h-4 w-4" />
@@ -134,7 +134,7 @@ export default function OutfitCard({
           onClick={onWear}
           aria-label={`Log that ${outfit.name} was worn today`}
           title="Wore this look today"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 text-ink-soft opacity-0 backdrop-blur-sm transition-all hover:bg-sage hover:text-white group-hover:opacity-100 focus-visible:opacity-100"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-0 backdrop-blur-sm transition-all hover:bg-sage hover:text-bone group-hover:opacity-100 focus-visible:opacity-100"
         >
           <CheckIcon className="h-4 w-4" />
         </button>

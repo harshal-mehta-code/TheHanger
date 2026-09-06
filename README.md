@@ -12,6 +12,13 @@ Deploys to Vercel as a static front end — no database, no accounts, no server.
 **Three views** — *Closet* (everything you own), *Outfits* (saved looks), and
 *Insights* (what the closet is actually doing).
 
+**Quick add** — Pick a batch of photos at once and give each a name, category
+and seasons in a single pass. Cataloguing a whole wardrobe one modal at a time
+is the slow part of an app like this; everything else can be filled in later.
+
+**Dark mode** — Toggle from the settings menu; follows the system setting until
+you choose. The theme resolves before first paint, so there's no flash.
+
 **Inventory** — Add a piece with a photo (camera or upload, drag-and-drop on
 desktop), a name, category, colour, brand, size, seasons, dress code, tags,
 purchase date and price. Photos are downscaled to 1400px and re-encoded before

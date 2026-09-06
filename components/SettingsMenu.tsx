@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  CameraIcon,
   DownloadIcon,
+  MoonIcon,
+  SunIcon,
   SlidersIcon,
   SparkleIcon,
   TrashIcon,
@@ -12,16 +15,29 @@ import { useCloset } from "@/lib/store";
 
 interface Props {
   onNotify: (message: string) => void;
+  onQuickAdd?: () => void;
 }
 
-export default function SettingsMenu({ onNotify }: Props) {
+export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
   const { items, exportBackup, importBackup, seedSample, resetCloset } =
     useCloset();
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dark, setDark] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function toggleTheme() {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem("hanger-theme", next);
+    } catch {
+      // Private browsing can refuse storage; the theme still applies for now.
+    }
+    setDark(next === "dark");
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -79,7 +95,12 @@ export default function SettingsMenu({ onNotify }: Props) {
     <div ref={wrapRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // The pre-paint script in the layout owns the theme; read it back on
+          // open so the label matches what's actually on screen.
+          if (!open) setDark(document.documentElement.dataset.theme === "dark");
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Closet settings"
@@ -93,6 +114,21 @@ export default function SettingsMenu({ onNotify }: Props) {
           role="menu"
           className="animate-rise card-surface absolute right-0 top-[calc(100%+0.5rem)] z-40 w-64 overflow-hidden p-1.5 shadow-[var(--shadow-lift)]"
         >
+          {onQuickAdd && (
+            <>
+              <MenuItem
+                icon={<CameraIcon className="h-4 w-4" />}
+                label="Quick add from photos"
+                hint="Catalogue a batch in one pass"
+                onClick={() => {
+                  onQuickAdd();
+                  close();
+                }}
+              />
+              <div className="my-1 border-t border-line" />
+            </>
+          )}
+
           <MenuItem
             icon={<DownloadIcon className="h-4 w-4" />}
             label="Back up closet"
@@ -122,6 +158,19 @@ export default function SettingsMenu({ onNotify }: Props) {
               onClick={handleSample}
             />
           )}
+
+          <MenuItem
+            icon={
+              dark ? (
+                <SunIcon className="h-4 w-4" />
+              ) : (
+                <MoonIcon className="h-4 w-4" />
+              )
+            }
+            label={dark ? "Switch to light" : "Switch to dark"}
+            hint={dark ? "Cream and ink" : "Easier on the eyes at night"}
+            onClick={toggleTheme}
+          />
 
           <div className="my-1 border-t border-line" />
 

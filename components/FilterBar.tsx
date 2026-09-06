@@ -173,7 +173,7 @@ export default function FilterBar({
           <SlidersIcon className="h-3.5 w-3.5" />
           Filters
           {count > 0 && (
-            <span className="rounded-full bg-berry px-1.5 text-[10px] font-bold text-white">
+            <span className="rounded-full bg-berry px-1.5 text-[10px] font-bold text-bone">
               {count}
             </span>
           )}

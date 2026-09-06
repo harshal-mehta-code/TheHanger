@@ -231,7 +231,7 @@ export default function ItemEditor({
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="flex-1 rounded-full bg-white/92 py-1.5 text-xs font-semibold backdrop-blur-sm transition-colors hover:bg-white"
+                    className="flex-1 rounded-full bg-shell/92 py-1.5 text-xs font-semibold backdrop-blur-sm transition-colors hover:bg-shell"
                   >
                     Replace
                   </button>
@@ -242,7 +242,7 @@ export default function ItemEditor({
                       setPreview(null);
                     }}
                     aria-label="Remove photo"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/92 backdrop-blur-sm transition-colors hover:bg-white hover:text-berry"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-shell/92 backdrop-blur-sm transition-colors hover:bg-shell hover:text-berry"
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
