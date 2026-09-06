@@ -4,9 +4,7 @@ import type { ClosetStats } from "@/lib/wardrobe";
 
 interface Props {
   stats: ClosetStats;
-  /** Applying a stat as a filter is the point of the strip — each tile jumps. */
   onShowNeglected: () => void;
-  onShowNeverWorn: () => void;
   onShowFavorites: () => void;
 }
 
@@ -55,15 +53,35 @@ function Tile({
   );
 }
 
+/**
+ * Insights is where the closet gets measured, so this stays deliberately
+ * small: a single line on a phone, four tiles only where there's room to
+ * spare. The point of the closet screen is the clothes.
+ */
 export default function ClosetPulse({
   stats,
   onShowNeglected,
-  onShowNeverWorn,
   onShowFavorites,
 }: Props) {
   return (
     <section aria-label="Closet at a glance">
-      <div className="no-scrollbar -mx-4 grid grid-flow-col gap-3 overflow-x-auto px-4 [grid-auto-columns:minmax(9.5rem,1fr)] sm:mx-0 sm:grid-flow-row sm:grid-cols-4 sm:px-0">
+      <p className="text-sm text-muted sm:hidden">
+        <span className="font-semibold text-ink">{stats.total} pieces</span>
+        {stats.neglected > 0 && (
+          <>
+            {" · "}
+            <button
+              type="button"
+              onClick={onShowNeglected}
+              className="font-medium text-gold underline-offset-4 hover:underline"
+            >
+              {stats.neglected} need love
+            </button>
+          </>
+        )}
+      </p>
+
+      <div className="hidden gap-3 sm:grid sm:grid-cols-4">
         <Tile
           label="In the closet"
           value={stats.total}
@@ -89,7 +107,7 @@ export default function ClosetPulse({
           value={stats.favorites}
           hint={`${stats.neverWorn} never worn`}
           tone="berry"
-          onClick={stats.favorites > 0 ? onShowFavorites : onShowNeverWorn}
+          onClick={onShowFavorites}
         />
       </div>
     </section>

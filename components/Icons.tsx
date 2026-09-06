@@ -183,3 +183,11 @@ export function MoonIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ChartIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 19.5V9M10 19.5V4.5M16 19.5v-7M4 19.5h16" />
+    </svg>
+  );
+}

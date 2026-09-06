@@ -8,7 +8,8 @@ import ItemDetail from "@/components/ItemDetail";
 import ItemEditor from "@/components/ItemEditor";
 import QuickAdd from "@/components/QuickAdd";
 import AppHeader from "@/components/AppHeader";
-import { HangerMark, PlusIcon, SparkleIcon } from "@/components/Icons";
+import BottomNav from "@/components/BottomNav";
+import { HangerMark, SparkleIcon } from "@/components/Icons";
 import { useCloset } from "@/lib/store";
 import { EMPTY_FILTERS, type Filters, type Item } from "@/lib/types";
 import {
@@ -106,7 +107,7 @@ export default function ClosetPage() {
   const hasCloset = items.length > 0;
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-24 sm:px-6">
+    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-28 sm:px-6 sm:pb-16">
       <AppHeader
         searchRef={searchRef}
         search={{
@@ -149,7 +150,7 @@ export default function ClosetPage() {
           }}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <ClosetPulse
             stats={stats}
             onShowNeglected={() =>
@@ -157,13 +158,6 @@ export default function ClosetPage() {
                 ...EMPTY_FILTERS,
                 sort: "neglected",
                 notWornDays: 90,
-                search: f.search,
-              }))
-            }
-            onShowNeverWorn={() =>
-              setFilters((f) => ({
-                ...EMPTY_FILTERS,
-                neverWorn: true,
                 search: f.search,
               }))
             }
@@ -206,17 +200,6 @@ export default function ClosetPage() {
         </div>
       )}
 
-      {/* ---------------- floating add button (mobile) ---------------- */}
-      {ready && hasCloset && (
-        <button
-          type="button"
-          onClick={() => setEditing({ mode: "new" })}
-          aria-label="Add a piece"
-          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-bone shadow-[var(--shadow-lift)] transition-transform active:scale-95 sm:hidden"
-        >
-          <PlusIcon className="h-6 w-6" />
-        </button>
-      )}
 
       {/* ---------------- overlays ---------------- */}
       {editing?.mode === "new" && (
@@ -289,10 +272,12 @@ export default function ClosetPage() {
         />
       )}
 
+      <BottomNav />
+
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
           {toast}
         </div>

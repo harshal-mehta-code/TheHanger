@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDownIcon, HeartIcon, SlidersIcon } from "./Icons";
+import Modal from "./Modal";
+import { SlidersIcon } from "./Icons";
 import {
   CATEGORIES,
   COLORS,
@@ -36,10 +37,9 @@ const NOT_WORN_OPTIONS = [
   { days: 365, label: "A year+" },
 ];
 
-/** Count of filters beyond search/sort, shown on the "Filters" button. */
+/** Everything narrowing the grid except the category rail, which stays visible. */
 function activeCount(f: Filters) {
   return (
-    f.categories.length +
     f.seasons.length +
     f.colors.length +
     f.brands.length +
@@ -60,10 +60,9 @@ export default function FilterBar({
   resultCount,
   wishlistCount,
 }: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const count = activeCount(filters);
 
-  /** Add/remove one value in an array-valued filter. */
   function toggle<
     K extends
       | "categories"
@@ -73,10 +72,7 @@ export default function FilterBar({
       | "tags"
       | "formality"
       | "statuses",
-  >(
-    key: K,
-    value: Filters[K][number],
-  ) {
+  >(key: K, value: Filters[K][number]) {
     const list = filters[key] as Filters[K][number][];
     const next = list.includes(value)
       ? list.filter((v) => v !== value)
@@ -84,91 +80,25 @@ export default function FilterBar({
     onChange({ ...filters, [key]: next } as Filters);
   }
 
+  function clearAll() {
+    onChange({
+      ...EMPTY_FILTERS,
+      scope: filters.scope,
+      search: filters.search,
+      sort: filters.sort,
+    });
+  }
+
   return (
-    <div className="space-y-3">
-      {/* Closet vs wishlist — a scope, not a filter, so it sits above the rest */}
-      <div className="flex w-fit gap-1 rounded-full border border-line bg-shell p-1">
-        {(
-          [
-            ["closet", "Closet"],
-            ["wishlist", `Wishlist${wishlistCount ? ` · ${wishlistCount}` : ""}`],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() =>
-              onChange({ ...EMPTY_FILTERS, scope: id, search: filters.search })
-            }
-            aria-pressed={filters.scope === id}
-            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
-              filters.scope === id
-                ? "bg-ink text-bone"
-                : "text-ink-soft hover:text-berry-deep"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Category rail */}
-      <div className="fade-rail no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <div>
+      {/* One row does all the narrowing: a pinned Filters button, then the
+          category rail scrolling beside it. */}
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onChange({ ...filters, categories: [] })}
-          data-active={filters.categories.length === 0}
-          className="chip"
-        >
-          Everything
-        </button>
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => toggle("categories", c.id)}
-            data-active={filters.categories.includes(c.id)}
-            className="chip"
-          >
-            <span aria-hidden>{c.emoji}</span>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Season + quick toggles + sort */}
-      <div className="flex flex-wrap items-center gap-2">
-        {SEASONS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => toggle("seasons", s.id)}
-            data-active={filters.seasons.includes(s.id)}
-            className="chip"
-          >
-            <span aria-hidden>{s.emoji}</span>
-            {s.label}
-          </button>
-        ))}
-
-        <button
-          type="button"
-          onClick={() =>
-            onChange({ ...filters, favoritesOnly: !filters.favoritesOnly })
-          }
-          data-active={filters.favoritesOnly}
-          className="chip"
-        >
-          <HeartIcon filled={filters.favoritesOnly} className="h-3.5 w-3.5" />
-          Loved
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          data-active={count > 0 && !expanded}
-          className="chip"
+          onClick={() => setOpen(true)}
+          data-active={count > 0}
+          className="chip shrink-0"
         >
           <SlidersIcon className="h-3.5 w-3.5" />
           Filters
@@ -177,190 +107,271 @@ export default function FilterBar({
               {count}
             </span>
           )}
-          <ChevronDownIcon
-            className={`h-3.5 w-3.5 transition-transform ${
-              expanded ? "rotate-180" : ""
-            }`}
-          />
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
-          {/* Without this, a filter applied from a stat tile can only be undone
-              inside the collapsed panel — easy to get stuck in. */}
-          {count > 0 && (
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...EMPTY_FILTERS,
-                  scope: filters.scope,
-                  search: filters.search,
-                  sort: filters.sort,
-                })
-              }
-              className="text-xs font-medium text-berry underline-offset-4 hover:underline"
-            >
-              Clear
-            </button>
-          )}
-          <span className="hidden text-xs text-muted sm:inline">
-            {resultCount} {resultCount === 1 ? "piece" : "pieces"}
-          </span>
-          <label className="sr-only" htmlFor="sort">
-            Sort
-          </label>
-          <select
-            id="sort"
-            value={filters.sort}
-            onChange={(e) =>
-              onChange({ ...filters, sort: e.target.value as SortKey })
-            }
-            className="field w-auto rounded-full py-1.5 text-xs"
+        <div className="fade-rail no-scrollbar -mr-4 flex gap-2 overflow-x-auto pr-4 sm:mr-0 sm:pr-0">
+          <button
+            type="button"
+            onClick={() => onChange({ ...filters, categories: [] })}
+            data-active={filters.categories.length === 0}
+            className="chip"
           >
-            {SORTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            All
+          </button>
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => toggle("categories", c.id)}
+              data-active={filters.categories.includes(c.id)}
+              className="chip"
+            >
+              <span aria-hidden>{c.emoji}</span>
+              {c.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {expanded && (
-        <div className="card-surface animate-rise space-y-5 p-4">
-          <div>
-            <p className="eyebrow mb-2">Colour</p>
-            <div className="flex flex-wrap gap-1.5">
-              {COLORS.map((c) => {
-                const active = filters.colors.includes(c.id);
-                return (
+      {open && (
+        <Modal
+          title="Filters"
+          onClose={() => setOpen(false)}
+          footer={
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={clearAll}
+                disabled={count === 0}
+                className="text-sm font-medium text-berry underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
+              >
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="btn-primary ml-auto"
+              >
+                Show {resultCount} {resultCount === 1 ? "piece" : "pieces"}
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-5 p-5">
+            <div>
+              <p className="eyebrow mb-2">Showing</p>
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    ["closet", "Closet"],
+                    [
+                      "wishlist",
+                      `Wishlist${wishlistCount ? ` · ${wishlistCount}` : ""}`,
+                    ],
+                  ] as const
+                ).map(([id, label]) => (
                   <button
-                    key={c.id}
+                    key={id}
                     type="button"
-                    onClick={() => toggle("colors", c.id)}
-                    title={c.label}
-                    aria-label={c.label}
-                    aria-pressed={active}
-                    className={`h-7 w-7 rounded-full ring-1 ring-inset transition-all ${
-                      active
-                        ? "ring-2 ring-ink ring-offset-2 ring-offset-shell"
-                        : "ring-ink/15 hover:scale-110"
-                    }`}
-                    style={{ background: c.hex }}
-                  />
-                );
-              })}
+                    onClick={() =>
+                      onChange({
+                        ...EMPTY_FILTERS,
+                        scope: id,
+                        search: filters.search,
+                      })
+                    }
+                    data-active={filters.scope === id}
+                    className="chip"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <p className="eyebrow mb-2">Where it is</p>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUSES.map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  onClick={() => toggle("statuses", st.id)}
-                  data-active={filters.statuses.includes(st.id)}
-                  className="chip"
-                >
-                  <span aria-hidden>{st.emoji}</span>
-                  {st.label}
-                </button>
-              ))}
+            <div>
+              <label className="label" htmlFor="sort">
+                Order
+              </label>
+              <select
+                id="sort"
+                value={filters.sort}
+                onChange={(e) =>
+                  onChange({ ...filters, sort: e.target.value as SortKey })
+                }
+                className="field"
+              >
+                {SORTS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div>
-            <p className="eyebrow mb-2">Not worn in…</p>
-            <div className="flex flex-wrap gap-1.5">
-              {NOT_WORN_OPTIONS.map((o) => (
+            <div>
+              <p className="eyebrow mb-2">Season</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SEASONS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggle("seasons", s.id)}
+                    data-active={filters.seasons.includes(s.id)}
+                    className="chip"
+                  >
+                    <span aria-hidden>{s.emoji}</span>
+                    {s.label}
+                  </button>
+                ))}
                 <button
-                  key={o.days}
                   type="button"
                   onClick={() =>
                     onChange({
                       ...filters,
-                      notWornDays:
-                        filters.notWornDays === o.days ? null : o.days,
+                      favoritesOnly: !filters.favoritesOnly,
                     })
                   }
-                  data-active={filters.notWornDays === o.days}
+                  data-active={filters.favoritesOnly}
                   className="chip"
                 >
-                  {o.label}
+                  ♥ Loved
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  onChange({ ...filters, neverWorn: !filters.neverWorn })
-                }
-                data-active={filters.neverWorn}
-                className="chip"
-              >
-                Never worn
-              </button>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <p className="eyebrow mb-2">Dress code</p>
-            <div className="flex flex-wrap gap-1.5">
-              {FORMALITIES.map((f) => (
+            <div>
+              <p className="eyebrow mb-2">Colour</p>
+              <div className="flex flex-wrap gap-1.5">
+                {COLORS.map((c) => {
+                  const active = filters.colors.includes(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => toggle("colors", c.id)}
+                      title={c.label}
+                      aria-label={c.label}
+                      aria-pressed={active}
+                      className={`h-7 w-7 rounded-full ring-1 ring-inset transition-all ${
+                        active
+                          ? "ring-2 ring-ink ring-offset-2 ring-offset-shell"
+                          : "ring-ink/15 hover:scale-110"
+                      }`}
+                      style={{ background: c.hex }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="eyebrow mb-2">Where it is</p>
+              <div className="flex flex-wrap gap-1.5">
+                {STATUSES.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => toggle("statuses", st.id)}
+                    data-active={filters.statuses.includes(st.id)}
+                    className="chip"
+                  >
+                    <span aria-hidden>{st.emoji}</span>
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="eyebrow mb-2">Not worn in…</p>
+              <div className="flex flex-wrap gap-1.5">
+                {NOT_WORN_OPTIONS.map((o) => (
+                  <button
+                    key={o.days}
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...filters,
+                        notWornDays:
+                          filters.notWornDays === o.days ? null : o.days,
+                      })
+                    }
+                    data-active={filters.notWornDays === o.days}
+                    className="chip"
+                  >
+                    {o.label}
+                  </button>
+                ))}
                 <button
-                  key={f.id}
                   type="button"
-                  onClick={() => toggle("formality", f.id)}
-                  data-active={filters.formality.includes(f.id)}
+                  onClick={() =>
+                    onChange({ ...filters, neverWorn: !filters.neverWorn })
+                  }
+                  data-active={filters.neverWorn}
                   className="chip"
                 >
-                  {f.label}
+                  Never worn
                 </button>
-              ))}
+              </div>
             </div>
-          </div>
 
-          {facets.brands.length > 0 && (
             <div>
-              <p className="eyebrow mb-2">Brand</p>
+              <p className="eyebrow mb-2">Dress code</p>
               <div className="flex flex-wrap gap-1.5">
-                {facets.brands.map((b) => (
+                {FORMALITIES.map((f) => (
                   <button
-                    key={b}
+                    key={f.id}
                     type="button"
-                    onClick={() => toggle("brands", b)}
-                    data-active={filters.brands.includes(b)}
+                    onClick={() => toggle("formality", f.id)}
+                    data-active={filters.formality.includes(f.id)}
                     className="chip"
                   >
-                    {b}
+                    {f.label}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {facets.tags.length > 0 && (
-            <div>
-              <p className="eyebrow mb-2">Tags</p>
-              <div className="flex flex-wrap gap-1.5">
-                {facets.tags.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => toggle("tags", t)}
-                    data-active={filters.tags.includes(t)}
-                    className="chip"
-                  >
-                    {t}
-                  </button>
-                ))}
+            {facets.brands.length > 0 && (
+              <div>
+                <p className="eyebrow mb-2">Brand</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {facets.brands.map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => toggle("brands", b)}
+                      data-active={filters.brands.includes(b)}
+                      className="chip"
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
+            {facets.tags.length > 0 && (
+              <div>
+                <p className="eyebrow mb-2">Tags</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {facets.tags.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggle("tags", t)}
+                      data-active={filters.tags.includes(t)}
+                      className="chip"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <label className="flex cursor-pointer items-center gap-2 border-t border-line pt-4 text-sm">
               <input
                 type="checkbox"
                 checked={filters.includeArchived}
@@ -371,24 +382,8 @@ export default function FilterBar({
               />
               Include archived pieces
             </label>
-
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...EMPTY_FILTERS,
-                  scope: filters.scope,
-                  search: filters.search,
-                  sort: filters.sort,
-                })
-              }
-              disabled={count === 0}
-              className="text-sm font-medium text-berry underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
-            >
-              Clear all filters
-            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

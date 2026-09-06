@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
 import OutfitCard from "@/components/OutfitCard";
 import OutfitDetail from "@/components/OutfitDetail";
 import OutfitEditor from "@/components/OutfitEditor";
 import ItemDetail from "@/components/ItemDetail";
 import { HangerMark, HeartIcon, SparkleIcon } from "@/components/Icons";
-import { FORMALITIES, SEASONS } from "@/lib/taxonomy";
+import { SEASONS } from "@/lib/taxonomy";
 import { useCloset } from "@/lib/store";
 import type { Outfit, SortKey } from "@/lib/types";
 import {
@@ -98,12 +99,11 @@ export default function OutfitsPage() {
   const hasOutfits = outfits.length > 0;
   const activeFilters =
     filters.seasons.length +
-    filters.formality.length +
     (filters.favoritesOnly ? 1 : 0) +
     (filters.wearableOnly ? 1 : 0);
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-24 sm:px-6">
+    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-28 sm:px-6 sm:pb-16">
       <AppHeader
         search={{
           value: filters.search,
@@ -134,8 +134,8 @@ export default function OutfitsPage() {
           onAdd={() => setEditing({ mode: "new" })}
         />
       ) : (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="space-y-4">
+          <div className="fade-rail no-scrollbar -mr-4 flex items-center gap-2 overflow-x-auto pr-4 sm:mr-0 sm:flex-wrap sm:overflow-visible sm:pr-0">
             {SEASONS.map((s) => (
               <button
                 key={s.id}
@@ -149,7 +149,7 @@ export default function OutfitsPage() {
                   }))
                 }
                 data-active={filters.seasons.includes(s.id)}
-                className="chip"
+                className="chip shrink-0"
               >
                 <span aria-hidden>{s.emoji}</span>
                 {s.label}
@@ -162,7 +162,7 @@ export default function OutfitsPage() {
                 setFilters((f) => ({ ...f, favoritesOnly: !f.favoritesOnly }))
               }
               data-active={filters.favoritesOnly}
-              className="chip"
+              className="chip shrink-0"
             >
               <HeartIcon filled={filters.favoritesOnly} className="h-3.5 w-3.5" />
               Loved
@@ -175,12 +175,28 @@ export default function OutfitsPage() {
               }
               data-active={filters.wearableOnly}
               title="Hide looks with a piece in the wash or away being fixed"
-              className="chip"
+              className="chip shrink-0"
             >
               ✨ Wearable now
             </button>
 
-            <div className="ml-auto flex items-center gap-2">
+            {activeFilters > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilters((f) => ({
+                    ...EMPTY_OUTFIT_FILTERS,
+                    search: f.search,
+                    sort: f.sort,
+                  }))
+                }
+                className="chip shrink-0 sm:hidden"
+              >
+                Clear
+              </button>
+            )}
+
+            <div className="ml-auto hidden items-center gap-2 sm:flex">
               {activeFilters > 0 && (
                 <button
                   type="button"
@@ -219,26 +235,6 @@ export default function OutfitsPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            {FORMALITIES.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    formality: prev.formality.includes(f.id)
-                      ? prev.formality.filter((x) => x !== f.id)
-                      : [...prev.formality, f.id],
-                  }))
-                }
-                data-active={filters.formality.includes(f.id)}
-                className="chip"
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
 
           {visible.length === 0 ? (
             <div className="card-surface animate-rise px-6 py-14 text-center">
@@ -266,16 +262,6 @@ export default function OutfitsPage() {
         </div>
       )}
 
-      {ready && hasOutfits && (
-        <button
-          type="button"
-          onClick={() => setEditing({ mode: "new" })}
-          aria-label="Build a look"
-          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-bone shadow-[var(--shadow-lift)] transition-transform active:scale-95 sm:hidden"
-        >
-          <SparkleIcon className="h-6 w-6" />
-        </button>
-      )}
 
       {editing?.mode === "new" && (
         <OutfitEditor
@@ -343,10 +329,12 @@ export default function OutfitsPage() {
         />
       )}
 
+      <BottomNav />
+
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
           {toast}
         </div>

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
 import ItemDetail from "@/components/ItemDetail";
 import ItemPhoto from "@/components/ItemPhoto";
 import { HangerMark } from "@/components/Icons";
@@ -119,7 +120,7 @@ export default function InsightsPage() {
   const peakMonth = Math.max(1, ...data.months.map((m) => m.count));
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-24 sm:px-6">
+    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-28 sm:px-6 sm:pb-16">
       <AppHeader
         subtitle="What your closet is actually doing"
         onNotify={flash}
@@ -359,10 +360,12 @@ export default function InsightsPage() {
         />
       )}
 
+      <BottomNav />
+
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
           {toast}
         </div>

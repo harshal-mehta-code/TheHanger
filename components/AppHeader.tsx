@@ -13,7 +13,6 @@ interface Props {
   onAdd?: () => void;
   subtitle?: string;
   onNotify: (message: string) => void;
-  /** Offered alongside backup/restore in the settings menu. */
   onQuickAdd?: () => void;
   searchRef?: React.RefObject<HTMLInputElement | null>;
 }
@@ -36,14 +35,14 @@ export default function AppHeader({
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 -mx-4 mb-5 bg-bone/85 px-4 pb-3 pt-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+    <header className="sticky top-0 z-30 -mx-4 mb-4 bg-bone/85 px-4 pb-3 pt-4 backdrop-blur-md sm:-mx-6 sm:px-6">
       <div className="flex items-center gap-3">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-bone">
-            <HangerMark className="animate-swing h-6 w-6" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-bone sm:h-10 sm:w-10">
+            <HangerMark className="animate-swing h-5 w-5 sm:h-6 sm:w-6" />
           </span>
           <span className="min-w-0">
-            <span className="display block truncate text-xl font-semibold leading-none sm:text-2xl">
+            <span className="display block truncate text-lg font-semibold leading-none sm:text-2xl">
               The Hanger
             </span>
             {subtitle && (
@@ -54,9 +53,32 @@ export default function AppHeader({
           </span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-2">
+        {/* Sections live in the header on a laptop and in the bottom bar on a
+            phone, so the top of a small screen stays mostly clothes. */}
+        <nav
+          aria-label="Sections"
+          className="mx-auto hidden shrink-0 gap-1 rounded-full border border-line bg-shell p-1 sm:flex"
+        >
+          {TABS.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  active ? "bg-ink text-bone" : "text-ink-soft hover:text-berry-deep"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2 sm:ml-0">
           {search && (
-            <div className="relative hidden sm:block">
+            <div className="relative hidden md:block">
               <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input
                 ref={searchRef}
@@ -64,7 +86,7 @@ export default function AppHeader({
                 onChange={(e) => search.onChange(e.target.value)}
                 placeholder={search.placeholder}
                 aria-label={search.placeholder}
-                className="field w-48 rounded-full pl-9 lg:w-64"
+                className="field w-44 rounded-full pl-9 lg:w-60"
               />
             </div>
           )}
@@ -80,43 +102,18 @@ export default function AppHeader({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <nav
-          aria-label="Sections"
-          className="flex shrink-0 gap-1 rounded-full border border-line bg-shell p-1"
-        >
-          {TABS.map((tab) => {
-            const active = pathname === tab.href;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors sm:px-4 ${
-                  active
-                    ? "bg-ink text-bone"
-                    : "text-ink-soft hover:text-berry-deep"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {search && (
-          <div className="relative min-w-0 flex-1 sm:hidden">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input
-              value={search.value}
-              onChange={(e) => search.onChange(e.target.value)}
-              placeholder="Search…"
-              aria-label={search.placeholder}
-              className="field rounded-full pl-9"
-            />
-          </div>
-        )}
-      </div>
+      {search && (
+        <div className="relative mt-3 md:hidden">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            value={search.value}
+            onChange={(e) => search.onChange(e.target.value)}
+            placeholder={search.placeholder}
+            aria-label={search.placeholder}
+            className="field rounded-full pl-9"
+          />
+        </div>
+      )}
     </header>
   );
 }

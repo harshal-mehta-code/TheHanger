@@ -10,7 +10,13 @@ Deploys to Vercel as a static front end — no database, no accounts, no server.
 ## What it does
 
 **Three views** — *Closet* (everything you own), *Outfits* (saved looks), and
-*Insights* (what the closet is actually doing).
+*Insights* (what the closet is actually doing). Sections sit in the header on a
+laptop and in a bottom bar on a phone.
+
+**Kept calm on purpose** — the closet screen is clothes, not controls. All
+narrowing lives behind one *Filters* button beside the category rail, so a phone
+shows about 220px of chrome and then garments; the four stat tiles appear only
+where there's room for them, and reduce to a single line on a phone.
 
 **Quick add** — Pick a batch of photos at once and give each a name, category
 and seasons in a single pass. Cataloguing a whole wardrobe one modal at a time
@@ -25,8 +31,8 @@ purchase date and price. Photos are downscaled to 1400px and re-encoded before
 they're stored, so a few hundred pieces stay comfortably within the browser's
 storage budget.
 
-**Filter** — Category, season, colour, brand, tag, dress code, favourites,
-laundry status, and the ones that matter most for a real closet: *never worn*
+**Filter** — One sheet holds category, season, colour, brand, tag, dress code,
+favourites, order, laundry status, and the ones that matter most for a real closet: *never worn*
 and *not worn in 30 days / 3 months / 6 months / a year*. Free-text search spans
 name, brand, style, colour, tags and notes. Sort by newest, longest unworn, most
 worn, least worn, or A–Z.
