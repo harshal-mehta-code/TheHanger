@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CameraIcon,
+  CloudIcon,
   DownloadIcon,
   MoonIcon,
   SunIcon,
@@ -12,6 +13,8 @@ import {
   UploadIcon,
 } from "./Icons";
 import { useCloset } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import AccountSheet from "./AccountSheet";
 
 interface Props {
   onNotify: (message: string) => void;
@@ -19,12 +22,14 @@ interface Props {
 }
 
 export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
-  const { items, exportBackup, importBackup, seedSample, resetCloset } =
+  const { items, exportBackup, importBackup, seedSample, resetCloset, syncState } =
     useCloset();
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dark, setDark] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const { enabled: cloudOn, email, userId } = useAuth();
   const wrapRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +119,24 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
           role="menu"
           className="animate-rise card-surface absolute right-0 top-[calc(100%+0.5rem)] z-40 w-64 overflow-hidden p-1.5 shadow-[var(--shadow-lift)]"
         >
+          <MenuItem
+            icon={<CloudIcon className="h-4 w-4" />}
+            label={userId ? "Account & sync" : cloudOn ? "Sign in to sync" : "Sync across devices"}
+            hint={
+              userId
+                ? syncState.status === "error"
+                  ? "Sync needs attention"
+                  : (email ?? "Synced to your account")
+                : "Keep the same closet on every device"
+            }
+            onClick={() => {
+              setAccountOpen(true);
+              close();
+            }}
+          />
+
+          <div className="my-1 border-t border-line" />
+
           {onQuickAdd && (
             <>
               <MenuItem
@@ -177,8 +200,9 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
           {confirmReset ? (
             <div className="p-2">
               <p className="text-xs leading-relaxed text-muted">
-                This erases every piece and photo on this device. Back up first
-                if you want them back.
+                {userId
+                  ? "This erases every piece and photo from your account, on all your devices. Back up first if you want them back."
+                  : "This erases every piece and photo on this device. Back up first if you want them back."}
               </p>
               <div className="mt-2 flex gap-2">
                 <button
@@ -205,7 +229,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
             <MenuItem
               icon={<TrashIcon className="h-4 w-4" />}
               label="Empty the closet"
-              hint="Deletes everything on this device"
+              hint={userId ? "Deletes everything, everywhere" : "Deletes everything on this device"}
               danger
               disabled={items.length === 0 || busy}
               onClick={() => setConfirmReset(true)}
@@ -213,11 +237,14 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
           )}
 
           <p className="px-3 py-2 text-[11px] leading-relaxed text-muted">
-            Your closet is stored privately in this browser — nothing is
-            uploaded anywhere.
+            {userId
+              ? "Your closet is stored in this browser and synced privately to your account."
+              : "Your closet is stored privately in this browser — nothing is uploaded anywhere."}
           </p>
         </div>
       )}
+
+      {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
 
       <input
         ref={fileRef}

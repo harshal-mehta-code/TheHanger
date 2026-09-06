@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { CloseIcon } from "./Icons";
 
 interface Props {
@@ -41,7 +42,13 @@ export default function Modal({
     };
   }, [onClose]);
 
-  return (
+  // Rendered through the body, not in place. An ancestor with backdrop-filter
+  // (the sticky header, for one) becomes the containing block for fixed
+  // children, which would anchor this sheet to the header instead of the
+  // viewport and push it off screen.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       role="dialog"
@@ -98,6 +105,7 @@ export default function Modal({
           </footer>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

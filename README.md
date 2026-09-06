@@ -72,12 +72,67 @@ rather than colliding with it.
 ## Where the data lives
 
 Everything is stored in **IndexedDB in the browser** — item records in one
-object store, photos as blobs in another. Nothing is uploaded anywhere, which
-means no sign-in, no hosting bill, and complete privacy.
+object store, photos as blobs in another. The app works fully offline and needs
+no account.
 
-The trade-off worth knowing: **the closet lives in one browser on one device.**
-A phone and a laptop each keep their own copy. The backup/restore menu bridges
-them manually. If you want true sync across devices, see *Adding sync* below.
+Add a Supabase project (below) and the same closet follows you across devices:
+the browser stays the source of truth for reading, and the cloud becomes a
+mirror your other devices read from.
+
+## Sync across devices
+
+Optional. Unset, the app is a private local-only closet, exactly as it was
+before accounts existed.
+
+**1. Create a project** at [supabase.com](https://supabase.com) (the free tier
+is plenty).
+
+**2. Create the schema.** Open Dashboard → SQL Editor → New query, paste all of
+[`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the two
+tables, the row-level-security policies, and the private `wardrobe` bucket for
+photos. Re-running it later is safe.
+
+**3. Copy the keys** from Dashboard → Settings → API: the *Project URL* and the
+*anon / public* key.
+
+**4. Set them as environment variables.** For the deployed app: Vercel →
+your project → Settings → Environment Variables:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+```
+
+Then **redeploy** — these are inlined at build time, so an existing deployment
+won't pick them up on its own. For local development, put the same two lines in
+`.env.local` (see `.env.example`).
+
+**5. Sign up in the app** — settings menu → *Sign in to sync*. Use the same
+email on her phone and her laptop and both stay in step.
+
+By default Supabase emails a confirmation link on sign-up. To skip that for a
+two-person app, turn off Dashboard → Authentication → Sign In / Providers →
+*Confirm email*.
+
+### How the sync works
+
+Records carry an `updatedAt`, and the newer timestamp wins — last-write-wins,
+per record. That is the right trade here: two devices rarely edit the same piece
+in the same second, and the failure mode (one edit of one piece loses) is much
+cheaper than merging field by field. Deletes travel as tombstones so a second
+device doesn't push a deleted piece back.
+
+Local writes go to IndexedDB first and are mirrored to the cloud in the
+background, so the app stays fast and keeps working with no signal; the next
+sync carries anything that didn't make it. A full reconcile runs on sign-in, on
+load while signed in, and from *Sync now*.
+
+### Is the anon key safe in the browser?
+
+Yes — that is what it is for. Every table has row-level security enabled with
+policies that check `auth.uid() = user_id`, and photos live in a private bucket
+whose policies key off the owning folder. The key grants only what those
+policies allow, which is your own rows and nothing else.
 
 ## Running it
 
@@ -101,18 +156,6 @@ static. Push to the branch and it redeploys.
 On a phone, "Add to Home Screen" installs it as a standalone app (web manifest
 and icons are included).
 
-## Adding sync later
-
-The storage layer is deliberately isolated so this stays a contained change:
-
-- `lib/db.ts` — every IndexedDB read and write, and the photo URL cache.
-- `lib/store.tsx` — the React context; the only place components mutate state.
-
-Swapping in a hosted backend (Vercel Postgres or Neon for records, Vercel Blob
-for photos) means reimplementing those two files behind the same interface;
-components and the wardrobe logic in `lib/wardrobe.ts` don't change. Multi-device
-sync also implies auth, so that's the other half of the work.
-
 ## Layout
 
 ```
@@ -133,16 +176,22 @@ components/
   OutfitCard        collage card for a saved look
   OutfitDetail      look sheet, drills into each piece
   OutfitEditor      look builder with a piece picker
-  SettingsMenu      backup, restore, sample closet, erase
+  AccountSheet      sign in / create account / sync status
+  SettingsMenu      account, backup, restore, sample closet, theme, erase
   Modal, ItemPhoto, Icons
 lib/
   types.ts          Item, Outfit, Filters and the rest of the domain model
   taxonomy.ts       categories, seasons, colours, dress codes, statuses, tags
-  db.ts             IndexedDB access (v2) + object-URL cache
+  db.ts             IndexedDB access (v3) + tombstones + object-URL cache
+  supabase.ts       cloud client; null when sync isn't configured
+  auth.tsx          session, sign in / up / out
+  sync.ts           row mapping, last-write-wins reconcile, photo transfer
   store.tsx         React context and all mutations
   wardrobe.ts       filtering, sorting, stats, "last worn" formatting
   image.ts          photo downscaling and data-URL conversion
   sample.ts         the demo closet
 scripts/
   generate-sample-art.mjs   redraws public/sample/*.svg
+supabase/
+  schema.sql        tables, RLS policies, photo bucket
 ```

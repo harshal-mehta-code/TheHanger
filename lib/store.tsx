@@ -9,8 +9,11 @@ import {
   useState,
 } from "react";
 import * as db from "./db";
+import { useAuth } from "./auth";
 import { blobToDataUrl, dataUrlToBlob } from "./image";
 import { SAMPLE_CLOSET } from "./sample";
+import { getSupabase } from "./supabase";
+import { pushDeletion, pushItem, pushOutfit, syncAll } from "./sync";
 import type {
   Item,
   ItemDraft,
@@ -51,6 +54,16 @@ interface ClosetContextValue {
   importBackup: (file: File) => Promise<number>;
   seedSample: () => Promise<number>;
   resetCloset: () => Promise<void>;
+
+  /** null when signed out or sync isn't configured. */
+  syncState: SyncState;
+  syncNow: () => Promise<void>;
+}
+
+export interface SyncState {
+  status: "off" | "idle" | "syncing" | "error";
+  lastSyncedAt: number | null;
+  message: string | null;
 }
 
 const ClosetContext = createContext<ClosetContextValue | null>(null);
@@ -67,6 +80,33 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>({
+    status: "off",
+    lastSyncedAt: null,
+    message: null,
+  });
+
+  const { userId } = useAuth();
+
+  /**
+   * Mirror one local write to the cloud. Deliberately fire-and-forget: a failed
+   * push must never block the UI or lose the local write, and the next full
+   * sync will carry it up anyway because `updatedAt` still beats the remote.
+   */
+  const mirror = useCallback(
+    (run: (supabase: NonNullable<ReturnType<typeof getSupabase>>, uid: string) => Promise<void>) => {
+      const supabase = getSupabase();
+      if (!supabase || !userId) return;
+      run(supabase, userId).catch(() => {
+        setSyncState((prev) => ({
+          ...prev,
+          status: "error",
+          message: "Some changes haven't reached the cloud yet.",
+        }));
+      });
+    },
+    [userId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -103,9 +143,13 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         }),
       );
       // `next` is assigned synchronously by the updater above.
-      if (next) await db.writeItem(next);
+      if (next) {
+        await db.writeItem(next);
+        const updated = next;
+        mirror((sb, uid) => pushItem(sb, uid, updated));
+      }
     },
-    [],
+    [mirror],
   );
 
   const addItem = useCallback(async (draft: ItemDraft, photo?: Blob | null) => {
@@ -129,8 +173,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     };
     await db.writeItem(item);
     setItems((prev) => [...prev, item]);
+    mirror((sb, uid) => pushItem(sb, uid, item));
     return item;
-  }, []);
+  }, [mirror]);
 
   const updateItem = useCallback(
     async (id: string, draft: ItemDraft, photo?: Blob | null | undefined) => {
@@ -160,14 +205,21 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       };
       await db.writeItem(next);
       setItems((prev) => prev.map((i) => (i.id === id ? next : i)));
+      mirror((sb, uid) => pushItem(sb, uid, next));
     },
-    [items],
+    [items, mirror],
   );
 
   const deleteItem = useCallback(
     async (id: string) => {
+      const doomed = items.find((i) => i.id === id);
+      await db.recordDeletion(id, "item");
       await db.removeItem(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      mirror(async (sb, uid) => {
+        await pushDeletion(sb, uid, "item", id, doomed?.imageId);
+        await db.clearDeletions([id]);
+      });
 
       // An outfit must not keep pointing at a piece that no longer exists.
       const affected = outfits.filter((o) => o.itemIds.includes(id));
@@ -181,9 +233,10 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         setOutfits((prev) =>
           prev.map((o) => updated.find((u) => u.id === o.id) ?? o),
         );
+        for (const o of updated) mirror((sb, uid) => pushOutfit(sb, uid, o));
       }
     },
-    [outfits],
+    [items, outfits, mirror],
   );
 
   const toggleFavorite = useCallback(
@@ -242,9 +295,13 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
           return next;
         }),
       );
-      if (next) await db.writeOutfit(next);
+      if (next) {
+        await db.writeOutfit(next);
+        const updated = next;
+        mirror((sb, uid) => pushOutfit(sb, uid, updated));
+      }
     },
-    [],
+    [mirror],
   );
 
   const addOutfit = useCallback(async (draft: OutfitDraft) => {
@@ -259,8 +316,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     };
     await db.writeOutfit(outfit);
     setOutfits((prev) => [...prev, outfit]);
+    mirror((sb, uid) => pushOutfit(sb, uid, outfit));
     return outfit;
-  }, []);
+  }, [mirror]);
 
   const updateOutfit = useCallback(
     (id: string, draft: OutfitDraft) =>
@@ -272,10 +330,18 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     [mutateOutfit],
   );
 
-  const deleteOutfit = useCallback(async (id: string) => {
-    await db.removeOutfit(id);
-    setOutfits((prev) => prev.filter((o) => o.id !== id));
-  }, []);
+  const deleteOutfit = useCallback(
+    async (id: string) => {
+      await db.recordDeletion(id, "outfit");
+      await db.removeOutfit(id);
+      setOutfits((prev) => prev.filter((o) => o.id !== id));
+      mirror(async (sb, uid) => {
+        await pushDeletion(sb, uid, "outfit", id);
+        await db.clearDeletions([id]);
+      });
+    },
+    [mirror],
+  );
 
   const toggleOutfitFavorite = useCallback(
     (id: string) => mutateOutfit(id, (o) => ({ ...o, favorite: !o.favorite })),
@@ -313,8 +379,10 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       if (updated.length) {
         setItems((prev) => prev.map((i) => updated.find((u) => u.id === i.id) ?? i));
       }
+      mirror((sb, uid) => pushOutfit(sb, uid, nextOutfit));
+      for (const i of updated) mirror((sb, uid) => pushItem(sb, uid, i));
     },
-    [outfits, items],
+    [outfits, items, mirror],
   );
 
   const removeOutfitWear = useCallback(
@@ -492,11 +560,71 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     return seeded.length;
   }, []);
 
+  /** Full two-way reconcile. Safe to call repeatedly. */
+  const syncNow = useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase || !userId) return;
+
+    setSyncState((prev) => ({ ...prev, status: "syncing", message: null }));
+    try {
+      const result = await syncAll(supabase, userId);
+      // Local stores are the render source, so re-read after a merge.
+      const [freshItems, freshOutfits] = await Promise.all([
+        db.readAllItems(),
+        db.readAllOutfits(),
+      ]);
+      setItems(freshItems);
+      setOutfits(freshOutfits);
+      setSyncState({
+        status: "idle",
+        lastSyncedAt: Date.now(),
+        message:
+          result.pulled || result.pushed
+            ? `Synced ${result.pushed} up, ${result.pulled} down.`
+            : null,
+      });
+    } catch (e) {
+      setSyncState((prev) => ({
+        ...prev,
+        status: "error",
+        message:
+          e instanceof Error && /Failed to fetch|NetworkError/i.test(e.message)
+            ? "Can't reach the cloud right now — your closet is safe on this device."
+            : "Sync failed. Your closet is still safe on this device.",
+      }));
+    }
+  }, [userId]);
+
+  // Reconcile whenever a session appears (sign-in, or a reload that restored
+  // one). Signing out drops back to local-only rather than wiping anything.
+  useEffect(() => {
+    if (!ready) return;
+    if (!userId) {
+      setSyncState({ status: "off", lastSyncedAt: null, message: null });
+      return;
+    }
+    void syncNow();
+  }, [ready, userId, syncNow]);
+
   const resetCloset = useCallback(async () => {
+    // Signed in, "empty the closet" has to mean the account, not just this
+    // device — otherwise the next sync pulls the whole wardrobe back.
+    const doomedItems = items.map((i) => ({ id: i.id, imageId: i.imageId }));
+    const doomedOutfits = outfits.map((o) => o.id);
+
     await db.clearEverything();
     setItems([]);
     setOutfits([]);
-  }, []);
+
+    mirror(async (sb, uid) => {
+      for (const { id, imageId } of doomedItems) {
+        await pushDeletion(sb, uid, "item", id, imageId);
+      }
+      for (const id of doomedOutfits) {
+        await pushDeletion(sb, uid, "outfit", id);
+      }
+    });
+  }, [items, outfits, mirror]);
 
   const value = useMemo<ClosetContextValue>(
     () => ({
@@ -523,6 +651,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      syncState,
+      syncNow,
     }),
     [
       items,
@@ -548,6 +678,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      syncState,
+      syncNow,
     ],
   );
 

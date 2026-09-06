@@ -1,0 +1,140 @@
+-- The Hanger — cloud schema.
+--
+-- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New query).
+-- It is idempotent, so re-running it after an update is safe.
+--
+-- Every row is owned by a user and readable only by that user. The app talks to
+-- Postgres straight from the browser with the anon key, so row-level security is
+-- the whole security model — not a nicety. Nothing here trusts the client.
+
+-- ---------------------------------------------------------------- items
+
+create table if not exists public.items (
+  id           uuid primary key,
+  user_id      uuid not null references auth.users (id) on delete cascade,
+
+  name         text not null,
+  category     text not null,
+  subtype      text,
+  brand        text,
+  color        text,
+  size         text,
+  seasons      text[] not null default '{}',
+  formality    text,
+  tags         text[] not null default '{}',
+  notes        text,
+  purchased_on date,
+  price        numeric,
+  favorite     boolean not null default false,
+  archived     boolean not null default false,
+  wishlist     boolean not null default false,
+  status       text    not null default 'ready',
+
+  -- Storage object name for the photo, or null. The blob itself lives in the
+  -- `wardrobe` bucket under <user_id>/<image_id>.
+  image_id     text,
+
+  -- Wear log, stored whole: it is small, always read with the item, and never
+  -- queried across items.
+  wears        jsonb not null default '[]'::jsonb,
+
+  created_at   timestamptz not null default now(),
+  -- Drives last-write-wins during sync, so the client sets it, not the server.
+  updated_at   timestamptz not null default now(),
+  -- Soft delete: a tombstone has to outlive the row, or a second device would
+  -- push the piece straight back.
+  deleted_at   timestamptz
+);
+
+create index if not exists items_user_updated_idx
+  on public.items (user_id, updated_at desc);
+
+-- ---------------------------------------------------------------- outfits
+
+create table if not exists public.outfits (
+  id         uuid primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+
+  name       text not null,
+  item_ids   uuid[] not null default '{}',
+  seasons    text[] not null default '{}',
+  formality  text,
+  tags       text[] not null default '{}',
+  notes      text,
+  favorite   boolean not null default false,
+  wears      jsonb not null default '[]'::jsonb,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create index if not exists outfits_user_updated_idx
+  on public.outfits (user_id, updated_at desc);
+
+-- ---------------------------------------------------------------- policies
+
+alter table public.items   enable row level security;
+alter table public.outfits enable row level security;
+
+do $$
+begin
+  -- Four explicit policies per table rather than one `for all`: it keeps the
+  -- with-check on insert/update visible, which is what stops a client writing
+  -- a row owned by somebody else.
+  if not exists (select 1 from pg_policies where tablename = 'items' and policyname = 'items_select_own') then
+    create policy items_select_own on public.items for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'items' and policyname = 'items_insert_own') then
+    create policy items_insert_own on public.items for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'items' and policyname = 'items_update_own') then
+    create policy items_update_own on public.items for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'items' and policyname = 'items_delete_own') then
+    create policy items_delete_own on public.items for delete using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename = 'outfits' and policyname = 'outfits_select_own') then
+    create policy outfits_select_own on public.outfits for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'outfits' and policyname = 'outfits_insert_own') then
+    create policy outfits_insert_own on public.outfits for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'outfits' and policyname = 'outfits_update_own') then
+    create policy outfits_update_own on public.outfits for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'outfits' and policyname = 'outfits_delete_own') then
+    create policy outfits_delete_own on public.outfits for delete using (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------- photos
+
+-- Private bucket; the app reads through the authenticated client, never a
+-- public URL, so one person's wardrobe is not guessable from another's.
+insert into storage.buckets (id, name, public)
+values ('wardrobe', 'wardrobe', false)
+on conflict (id) do nothing;
+
+do $$
+begin
+  -- Objects are stored as <user_id>/<image_id>, so the first path segment is
+  -- the owner check.
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'wardrobe_read_own') then
+    create policy wardrobe_read_own on storage.objects for select
+      using (bucket_id = 'wardrobe' and (storage.foldername(name))[1] = auth.uid()::text);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'wardrobe_insert_own') then
+    create policy wardrobe_insert_own on storage.objects for insert
+      with check (bucket_id = 'wardrobe' and (storage.foldername(name))[1] = auth.uid()::text);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'wardrobe_update_own') then
+    create policy wardrobe_update_own on storage.objects for update
+      using (bucket_id = 'wardrobe' and (storage.foldername(name))[1] = auth.uid()::text);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'objects' and policyname = 'wardrobe_delete_own') then
+    create policy wardrobe_delete_own on storage.objects for delete
+      using (bucket_id = 'wardrobe' and (storage.foldername(name))[1] = auth.uid()::text);
+  end if;
+end $$;

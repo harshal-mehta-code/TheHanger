@@ -2,7 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Item, Outfit } from "./types";
 
 const DB_NAME = "the-hanger";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 interface HangerDB extends DBSchema {
   items: {
@@ -18,6 +18,15 @@ interface HangerDB extends DBSchema {
   outfits: {
     key: string;
     value: Outfit;
+  };
+  /**
+   * Tombstones. A hard delete leaves nothing for sync to see, so a second
+   * device would happily push the piece back; these outlive the row until the
+   * deletion has been sent to the cloud.
+   */
+  deletions: {
+    key: string;
+    value: { id: string; kind: "item" | "outfit"; deletedAt: number };
   };
 }
 
@@ -39,6 +48,9 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("outfits")) {
           db.createObjectStore("outfits", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("deletions")) {
+          db.createObjectStore("deletions", { keyPath: "id" });
         }
 
         // v2 gave every piece a laundry status and a wishlist flag; closets
@@ -94,6 +106,29 @@ export async function removeOutfit(id: string): Promise<void> {
   await db.delete("outfits", id);
 }
 
+/* ---------- tombstones ---------------------------------------------------- */
+
+export async function recordDeletion(
+  id: string,
+  kind: "item" | "outfit",
+): Promise<void> {
+  const db = await getDB();
+  await db.put("deletions", { id, kind, deletedAt: Date.now() });
+}
+
+export async function readDeletions() {
+  const db = await getDB();
+  return db.getAll("deletions");
+}
+
+export async function clearDeletions(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await getDB();
+  const tx = db.transaction("deletions", "readwrite");
+  for (const id of ids) await tx.store.delete(id);
+  await tx.done;
+}
+
 export async function writeImage(id: string, blob: Blob): Promise<void> {
   const db = await getDB();
   await db.put("images", blob, id);
@@ -112,10 +147,14 @@ export async function removeImage(id: string): Promise<void> {
 
 export async function clearEverything(): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction(["items", "images", "outfits"], "readwrite");
+  const tx = db.transaction(
+    ["items", "images", "outfits", "deletions"],
+    "readwrite",
+  );
   await tx.objectStore("items").clear();
   await tx.objectStore("images").clear();
   await tx.objectStore("outfits").clear();
+  await tx.objectStore("deletions").clear();
   await tx.done;
   for (const url of urlCache.values()) URL.revokeObjectURL(url);
   urlCache.clear();

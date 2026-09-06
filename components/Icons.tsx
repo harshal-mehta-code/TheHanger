@@ -191,3 +191,20 @@ export function ChartIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function CloudIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7.5 19.5a4.5 4.5 0 0 1-.6-8.96 5.5 5.5 0 0 1 10.7-1.06A4 4 0 0 1 17.5 19.5Z" />
+    </svg>
+  );
+}
+
+export function UserIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" />
+    </svg>
+  );
+}

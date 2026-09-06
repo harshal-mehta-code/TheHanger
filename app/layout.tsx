@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { AuthProvider } from "@/lib/auth";
 import { ClosetProvider } from "@/lib/store";
 import "./globals.css";
 
@@ -52,7 +53,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh antialiased">
-        <ClosetProvider>{children}</ClosetProvider>
+        <AuthProvider>
+          <ClosetProvider>{children}</ClosetProvider>
+        </AuthProvider>
       </body>
     </html>
   );
