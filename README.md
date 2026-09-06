@@ -9,17 +9,36 @@ Deploys to Vercel as a static front end — no database, no accounts, no server.
 
 ## What it does
 
+**Three views** — *Closet* (everything you own), *Outfits* (saved looks), and
+*Insights* (what the closet is actually doing).
+
 **Inventory** — Add a piece with a photo (camera or upload, drag-and-drop on
 desktop), a name, category, colour, brand, size, seasons, dress code, tags,
 purchase date and price. Photos are downscaled to 1400px and re-encoded before
 they're stored, so a few hundred pieces stay comfortably within the browser's
 storage budget.
 
-**Filter** — Category, season, colour, brand, tag, dress code, favourites, and
-the ones that matter most for a real closet: *never worn* and *not worn in
-30 days / 3 months / 6 months / a year*. Free-text search spans name, brand,
-style, colour, tags and notes. Sort by newest, longest unworn, most worn, least
-worn, or A–Z.
+**Filter** — Category, season, colour, brand, tag, dress code, favourites,
+laundry status, and the ones that matter most for a real closet: *never worn*
+and *not worn in 30 days / 3 months / 6 months / a year*. Free-text search spans
+name, brand, style, colour, tags and notes. Sort by newest, longest unworn, most
+worn, least worn, or A–Z.
+
+**Outfits** — Save combinations of pieces as a named look. Logging a look as
+worn counts a wear for every piece in it, so tracking stays honest without extra
+taps. Filter looks by season, dress code, favourites, or *wearable now*, which
+hides any look with a piece in the wash.
+
+**Laundry status** — Each piece is ready to wear, in the wash, at the cleaner,
+or waiting to be mended. Cards show it, filters respect it, and outfits know
+when one of their pieces is unavailable.
+
+**Wishlist** — Track pieces you want but don't own. They're kept out of the
+closet grid and out of every statistic until you tap *I bought it*.
+
+**Insights** — Wear activity by month, what you own by category, best and worst
+cost per wear, the pieces working hardest, the ones waiting longest, and spend
+by category.
 
 **Wear tracking** — One tap on a card logs that a piece was worn today; the
 detail sheet can backdate a wear or remove one. Everything else — "3 weeks
@@ -32,8 +51,10 @@ themselves as filters.
 **Archive** — Move a piece out of the active closet without deleting it, for
 things being donated, sold, or stored for the season.
 
-**Backup** — Export the whole closet, photos included, as a single JSON file;
-restore it on another device or browser from the same menu.
+**Backup** — Export the whole closet — pieces, photos, outfits and wear history
+— as a single JSON file; restore it on another device or browser from the same
+menu. Restoring re-keys everything, so a backup merges into an existing closet
+rather than colliding with it.
 
 ## Where the data lives
 
@@ -84,23 +105,31 @@ sync also implies auth, so that's the other half of the work.
 ```
 app/
   layout.tsx        fonts, metadata, closet provider
-  page.tsx          the closet: header, pulse, filters, grid, overlays
+  page.tsx          the closet: pulse, filters, grid, overlays
+  outfits/page.tsx  saved looks
+  insights/page.tsx charts and leaderboards
   globals.css       design tokens and component classes
   icon.svg, apple-icon.tsx, manifest.ts
 components/
+  AppHeader         wordmark, section nav, search, settings
   ItemCard          grid card with quick favourite / wore-it-today actions
-  ItemDetail        detail sheet with wear history
+  ItemDetail        detail sheet with status, wear history
   ItemEditor        add & edit form
-  FilterBar         category rail, season chips, advanced filter panel
+  FilterBar         scope toggle, category rail, advanced filter panel
   ClosetPulse       the four stat tiles
+  OutfitCard        collage card for a saved look
+  OutfitDetail      look sheet, drills into each piece
+  OutfitEditor      look builder with a piece picker
   SettingsMenu      backup, restore, sample closet, erase
   Modal, ItemPhoto, Icons
 lib/
-  types.ts          Item, Filters and the rest of the domain model
-  taxonomy.ts       categories, seasons, colours, dress codes, tag suggestions
-  db.ts             IndexedDB access + object-URL cache
+  types.ts          Item, Outfit, Filters and the rest of the domain model
+  taxonomy.ts       categories, seasons, colours, dress codes, statuses, tags
+  db.ts             IndexedDB access (v2) + object-URL cache
   store.tsx         React context and all mutations
   wardrobe.ts       filtering, sorting, stats, "last worn" formatting
   image.ts          photo downscaling and data-URL conversion
   sample.ts         the demo closet
+scripts/
+  generate-sample-art.mjs   redraws public/sample/*.svg
 ```

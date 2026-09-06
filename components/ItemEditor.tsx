@@ -10,13 +10,23 @@ import {
   COLORS,
   FORMALITIES,
   SEASONS,
+  STATUSES,
   TAG_SUGGESTIONS,
 } from "@/lib/taxonomy";
-import type { CategoryId, Formality, Item, ItemDraft, Season } from "@/lib/types";
+import type {
+  CategoryId,
+  Formality,
+  Item,
+  ItemDraft,
+  ItemStatus,
+  Season,
+} from "@/lib/types";
 
 interface Props {
   /** Absent when adding a new piece. */
   item?: Item;
+  /** New pieces added from the wishlist view start out as wishes. */
+  defaultWishlist?: boolean;
   knownBrands: string[];
   knownTags: string[];
   onClose: () => void;
@@ -25,6 +35,7 @@ interface Props {
 
 export default function ItemEditor({
   item,
+  defaultWishlist = false,
   knownBrands,
   knownTags,
   onClose,
@@ -46,6 +57,8 @@ export default function ItemEditor({
   const [purchasedOn, setPurchasedOn] = useState(item?.purchasedOn ?? "");
   const [price, setPrice] = useState(item?.price != null ? String(item.price) : "");
   const [favorite, setFavorite] = useState(item?.favorite ?? false);
+  const [wishlist, setWishlist] = useState(item?.wishlist ?? defaultWishlist);
+  const [status, setStatus] = useState<ItemStatus>(item?.status ?? "ready");
 
   /** `undefined` = photo untouched, `null` = cleared, Blob = replaced. */
   const [photo, setPhoto] = useState<Blob | null | undefined>(undefined);
@@ -138,6 +151,8 @@ export default function ItemEditor({
       purchasedOn: purchasedOn || undefined,
       price: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : undefined,
       favorite,
+      wishlist,
+      status,
     };
 
     setSaving(true);
@@ -254,6 +269,16 @@ export default function ItemEditor({
                 className="h-4 w-4 accent-[var(--color-berry)]"
               />
               Mark as a favourite
+            </label>
+
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={wishlist}
+                onChange={(e) => setWishlist(e.target.checked)}
+                className="h-4 w-4 accent-[var(--color-berry)]"
+              />
+              Wishlist — not owned yet
             </label>
           </div>
 
@@ -399,6 +424,26 @@ export default function ItemEditor({
                   ))}
                 </select>
               </div>
+
+              {!wishlist && (
+                <div>
+                  <label className="label" htmlFor="ie-status">
+                    Where it is
+                  </label>
+                  <select
+                    id="ie-status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as ItemStatus)}
+                    className="field"
+                  >
+                    {STATUSES.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="label" htmlFor="ie-purchased">

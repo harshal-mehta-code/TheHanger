@@ -14,6 +14,9 @@ export type CategoryId =
 
 export type Formality = "casual" | "everyday" | "work" | "party" | "formal";
 
+/** Where a piece physically is right now — drives "what can I actually wear". */
+export type ItemStatus = "ready" | "wash" | "cleaner" | "repair";
+
 /** A single logged wear. */
 export interface WearEvent {
   /** ISO date, day precision: "2026-09-06". */
@@ -41,6 +44,9 @@ export interface Item {
   favorite: boolean;
   /** Marked for donating / selling. */
   archived: boolean;
+  /** Wanted but not owned yet — kept out of the closet and its stats. */
+  wishlist: boolean;
+  status: ItemStatus;
   /** Key into the `images` object store; absent when no photo yet. */
   imageId?: string;
   wears: WearEvent[];
@@ -48,13 +54,42 @@ export interface Item {
   updatedAt: number;
 }
 
+/** A saved combination of pieces. Wearing one logs a wear on every member. */
+export interface Outfit {
+  id: string;
+  name: string;
+  itemIds: string[];
+  seasons: Season[];
+  formality?: Formality;
+  tags: string[];
+  notes?: string;
+  favorite: boolean;
+  wears: WearEvent[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type OutfitDraft = Omit<
+  Outfit,
+  "id" | "createdAt" | "updatedAt" | "wears" | "favorite"
+> & { favorite?: boolean };
+
 /** The shape accepted when creating or editing — id/timestamps are managed. */
 export type ItemDraft = Omit<
   Item,
-  "id" | "createdAt" | "updatedAt" | "wears" | "favorite" | "archived"
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "wears"
+  | "favorite"
+  | "archived"
+  | "wishlist"
+  | "status"
 > & {
   favorite?: boolean;
   archived?: boolean;
+  wishlist?: boolean;
+  status?: ItemStatus;
 };
 
 export type SortKey =
@@ -67,6 +102,9 @@ export type SortKey =
 
 export interface Filters {
   search: string;
+  /** The closet proper, or the list of pieces wanted but not owned. */
+  scope: "closet" | "wishlist";
+  statuses: ItemStatus[];
   categories: CategoryId[];
   seasons: Season[];
   colors: string[];
@@ -84,6 +122,8 @@ export interface Filters {
 
 export const EMPTY_FILTERS: Filters = {
   search: "",
+  scope: "closet",
+  statuses: [],
   categories: [],
   seasons: [],
   colors: [],

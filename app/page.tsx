@@ -6,13 +6,8 @@ import FilterBar from "@/components/FilterBar";
 import ItemCard from "@/components/ItemCard";
 import ItemDetail from "@/components/ItemDetail";
 import ItemEditor from "@/components/ItemEditor";
-import SettingsMenu from "@/components/SettingsMenu";
-import {
-  HangerMark,
-  PlusIcon,
-  SearchIcon,
-  SparkleIcon,
-} from "@/components/Icons";
+import AppHeader from "@/components/AppHeader";
+import { HangerMark, PlusIcon, SparkleIcon } from "@/components/Icons";
 import { useCloset } from "@/lib/store";
 import { EMPTY_FILTERS, type Filters, type Item } from "@/lib/types";
 import {
@@ -36,6 +31,8 @@ export default function ClosetPage() {
     deleteItem,
     toggleFavorite,
     toggleArchived,
+    toggleWishlist,
+    setStatus,
     logWear,
     removeWear,
     seedSample,
@@ -105,67 +102,25 @@ export default function ClosetPage() {
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-24 sm:px-6">
-      {/* ---------------- header ---------------- */}
-      <header className="sticky top-0 z-30 -mx-4 mb-5 bg-bone/85 px-4 pb-3 pt-4 backdrop-blur-md sm:-mx-6 sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-bone">
-              <HangerMark className="animate-swing h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="display truncate text-xl font-semibold leading-none sm:text-2xl">
-                The Hanger
-              </h1>
-              <p className="mt-1 hidden text-xs text-muted sm:block">
-                {hasCloset
-                  ? `${stats.total} pieces · ${SEASON_LABEL[season]} in rotation`
-                  : "Your wardrobe, beautifully kept"}
-              </p>
-            </div>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <div className="relative hidden sm:block">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <input
-                ref={searchRef}
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((f) => ({ ...f, search: e.target.value }))
-                }
-                placeholder="Search your closet…"
-                aria-label="Search your closet"
-                className="field w-56 rounded-full pl-9 lg:w-72"
-              />
-            </div>
-
-            <SettingsMenu onNotify={flash} />
-
-            <button
-              type="button"
-              onClick={() => setEditing({ mode: "new" })}
-              className="btn-primary"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Add piece</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Search moves below the wordmark on phones. */}
-        <div className="relative mt-3 sm:hidden">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, search: e.target.value }))
-            }
-            placeholder="Search your closet…"
-            aria-label="Search your closet"
-            className="field rounded-full pl-9"
-          />
-        </div>
-      </header>
+      <AppHeader
+        searchRef={searchRef}
+        search={{
+          value: filters.search,
+          onChange: (v) => setFilters((f) => ({ ...f, search: v })),
+          placeholder:
+            filters.scope === "wishlist"
+              ? "Search your wishlist…"
+              : "Search your closet…",
+        }}
+        addLabel={filters.scope === "wishlist" ? "Add a wish" : "Add piece"}
+        onAdd={() => setEditing({ mode: "new" })}
+        subtitle={
+          hasCloset
+            ? `${stats.total} pieces · ${SEASON_LABEL[season]} in rotation`
+            : "Your wardrobe, beautifully kept"
+        }
+        onNotify={flash}
+      />
 
       {error && (
         <p
@@ -219,6 +174,7 @@ export default function ClosetPage() {
             onChange={setFilters}
             facets={facets}
             resultCount={visible.length}
+            wishlistCount={stats.wishlist}
           />
 
           {visible.length === 0 ? (
@@ -258,6 +214,7 @@ export default function ClosetPage() {
       {/* ---------------- overlays ---------------- */}
       {editing?.mode === "new" && (
         <ItemEditor
+          defaultWishlist={filters.scope === "wishlist"}
           knownBrands={facets.brands}
           knownTags={facets.tags}
           onClose={() => setEditing(null)}
@@ -294,6 +251,15 @@ export default function ClosetPage() {
           }}
           onToggleFavorite={() => void toggleFavorite(openItem.id)}
           onToggleArchived={() => void toggleArchived(openItem.id)}
+          onToggleWishlist={() => {
+            void toggleWishlist(openItem.id);
+            flash(
+              openItem.wishlist
+                ? `“${openItem.name}” moved into your closet.`
+                : `“${openItem.name}” moved to your wishlist.`,
+            );
+          }}
+          onSetStatus={(status) => void setStatus(openItem.id, status)}
           onLogWear={(date) => void logWear(openItem.id, date)}
           onRemoveWear={(date) => void removeWear(openItem.id, date)}
         />

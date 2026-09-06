@@ -1,6 +1,9 @@
-import type { Filters, Item, SortKey } from "./types";
+import type { Filters, Item, Outfit, SortKey, WearEvent } from "./types";
 
 const DAY_MS = 86_400_000;
+
+/** Items and outfits both carry a wear log, so the helpers below take either. */
+type Wearable = { wears: WearEvent[] };
 
 /** Local-timezone "YYYY-MM-DD" — wear dates are days, not instants. */
 export function todayISO(): string {
@@ -9,12 +12,12 @@ export function todayISO(): string {
   return local.toISOString().slice(0, 10);
 }
 
-export function lastWornDate(item: Item): string | null {
+export function lastWornDate(item: Wearable): string | null {
   if (item.wears.length === 0) return null;
   return item.wears.reduce((a, b) => (a.date > b.date ? a : b)).date;
 }
 
-export function daysSinceWorn(item: Item): number | null {
+export function daysSinceWorn(item: Wearable): number | null {
   const last = lastWornDate(item);
   if (!last) return null;
   const then = new Date(`${last}T00:00:00`).getTime();
@@ -22,7 +25,7 @@ export function daysSinceWorn(item: Item): number | null {
   return Math.max(0, Math.round((now - then) / DAY_MS));
 }
 
-export function formatLastWorn(item: Item): string {
+export function formatLastWorn(item: Wearable): string {
   const days = daysSinceWorn(item);
   if (days === null) return "Never worn";
   if (days === 0) return "Worn today";
@@ -66,6 +69,9 @@ function matchesSearch(item: Item, query: string): boolean {
 
 export function filterItems(items: Item[], filters: Filters): Item[] {
   return items.filter((item) => {
+    if (item.wishlist !== (filters.scope === "wishlist")) return false;
+    if (filters.statuses.length && !filters.statuses.includes(item.status))
+      return false;
     if (!filters.includeArchived && item.archived) return false;
     if (filters.favoritesOnly && !item.favorite) return false;
     if (filters.search.trim() && !matchesSearch(item, filters.search.trim()))
@@ -136,12 +142,15 @@ export interface ClosetStats {
   favorites: number;
   /** Pieces untouched for 90+ days (never-worn included). */
   neglected: number;
+  /** Pieces that aren't ready to wear right now (wash, cleaner, repair). */
+  unavailable: number;
+  wishlist: number;
   topBrand: { name: string; count: number } | null;
   mostWorn: Item | null;
 }
 
 export function computeStats(items: Item[]): ClosetStats {
-  const active = items.filter((i) => !i.archived);
+  const active = items.filter((i) => !i.archived && !i.wishlist);
   const cutoff = new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10);
 
   const brandCounts = new Map<string, number>();
@@ -173,6 +182,8 @@ export function computeStats(items: Item[]): ClosetStats {
       const d = daysSinceWorn(i);
       return d === null || d >= 90;
     }).length,
+    unavailable: active.filter((i) => i.status !== "ready").length,
+    wishlist: items.filter((i) => i.wishlist && !i.archived).length,
     topBrand,
     mostWorn,
   };
@@ -190,6 +201,97 @@ export function collectFacets(items: Item[]) {
     brands: [...brands].sort((a, b) => a.localeCompare(b)),
     tags: [...tags].sort((a, b) => a.localeCompare(b)),
   };
+}
+
+/** Resolves an outfit's member ids to items, dropping any since deleted. */
+export function outfitPieces(outfit: Outfit, items: Item[]): Item[] {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  return outfit.itemIds
+    .map((id) => byId.get(id))
+    .filter((i): i is Item => Boolean(i));
+}
+
+export interface OutfitFilters {
+  search: string;
+  seasons: Filters["seasons"];
+  formality: Filters["formality"];
+  favoritesOnly: boolean;
+  /** Hide outfits with a piece in the wash, at the cleaner, or being repaired. */
+  wearableOnly: boolean;
+  sort: SortKey;
+}
+
+export const EMPTY_OUTFIT_FILTERS: OutfitFilters = {
+  search: "",
+  seasons: [],
+  formality: [],
+  favoritesOnly: false,
+  wearableOnly: false,
+  sort: "recent",
+};
+
+export function filterOutfits(
+  outfits: Outfit[],
+  items: Item[],
+  filters: OutfitFilters,
+): Outfit[] {
+  const query = filters.search.trim().toLowerCase();
+  return outfits.filter((outfit) => {
+    if (filters.favoritesOnly && !outfit.favorite) return false;
+    if (
+      filters.seasons.length &&
+      !filters.seasons.some((s) => outfit.seasons.includes(s))
+    )
+      return false;
+    if (
+      filters.formality.length &&
+      !(outfit.formality && filters.formality.includes(outfit.formality))
+    )
+      return false;
+
+    if (filters.wearableOnly) {
+      const pieces = outfitPieces(outfit, items);
+      if (pieces.some((p) => p.status !== "ready" || p.archived)) return false;
+    }
+
+    if (query) {
+      const pieces = outfitPieces(outfit, items);
+      const haystack = [
+        outfit.name,
+        outfit.notes,
+        ...outfit.tags,
+        ...pieces.map((p) => `${p.name} ${p.brand ?? ""}`),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!query.split(/\s+/).every((t) => haystack.includes(t))) return false;
+    }
+
+    return true;
+  });
+}
+
+export function sortOutfits(outfits: Outfit[], sort: SortKey): Outfit[] {
+  const copy = [...outfits];
+  switch (sort) {
+    case "oldest":
+      return copy.sort((a, b) => a.createdAt - b.createdAt);
+    case "mostWorn":
+      return copy.sort((a, b) => b.wears.length - a.wears.length);
+    case "leastWorn":
+      return copy.sort((a, b) => a.wears.length - b.wears.length);
+    case "neglected":
+      return copy.sort(
+        (a, b) =>
+          (daysSinceWorn(b) ?? Number.POSITIVE_INFINITY) -
+          (daysSinceWorn(a) ?? Number.POSITIVE_INFINITY),
+      );
+    case "name":
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    default:
+      return copy.sort((a, b) => b.createdAt - a.createdAt);
+  }
 }
 
 export function currentSeason(): "spring" | "summer" | "fall" | "winter" {

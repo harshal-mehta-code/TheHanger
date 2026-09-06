@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { ChevronDownIcon, HeartIcon, SlidersIcon } from "./Icons";
-import { CATEGORIES, COLORS, FORMALITIES, SEASONS } from "@/lib/taxonomy";
+import {
+  CATEGORIES,
+  COLORS,
+  FORMALITIES,
+  SEASONS,
+  STATUSES,
+} from "@/lib/taxonomy";
 import type { Filters, SortKey } from "@/lib/types";
 import { EMPTY_FILTERS } from "@/lib/types";
 
@@ -11,6 +17,7 @@ interface Props {
   onChange: (next: Filters) => void;
   facets: { brands: string[]; tags: string[] };
   resultCount: number;
+  wishlistCount: number;
 }
 
 const SORTS: { id: SortKey; label: string }[] = [
@@ -38,6 +45,7 @@ function activeCount(f: Filters) {
     f.brands.length +
     f.tags.length +
     f.formality.length +
+    f.statuses.length +
     (f.favoritesOnly ? 1 : 0) +
     (f.notWornDays !== null ? 1 : 0) +
     (f.neverWorn ? 1 : 0) +
@@ -50,12 +58,22 @@ export default function FilterBar({
   onChange,
   facets,
   resultCount,
+  wishlistCount,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const count = activeCount(filters);
 
   /** Add/remove one value in an array-valued filter. */
-  function toggle<K extends "categories" | "seasons" | "colors" | "brands" | "tags" | "formality">(
+  function toggle<
+    K extends
+      | "categories"
+      | "seasons"
+      | "colors"
+      | "brands"
+      | "tags"
+      | "formality"
+      | "statuses",
+  >(
     key: K,
     value: Filters[K][number],
   ) {
@@ -68,6 +86,32 @@ export default function FilterBar({
 
   return (
     <div className="space-y-3">
+      {/* Closet vs wishlist — a scope, not a filter, so it sits above the rest */}
+      <div className="flex w-fit gap-1 rounded-full border border-line bg-shell p-1">
+        {(
+          [
+            ["closet", "Closet"],
+            ["wishlist", `Wishlist${wishlistCount ? ` · ${wishlistCount}` : ""}`],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() =>
+              onChange({ ...EMPTY_FILTERS, scope: id, search: filters.search })
+            }
+            aria-pressed={filters.scope === id}
+            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+              filters.scope === id
+                ? "bg-ink text-bone"
+                : "text-ink-soft hover:text-berry-deep"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Category rail */}
       <div className="fade-rail no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <button
@@ -149,6 +193,7 @@ export default function FilterBar({
               onClick={() =>
                 onChange({
                   ...EMPTY_FILTERS,
+                  scope: filters.scope,
                   search: filters.search,
                   sort: filters.sort,
                 })
@@ -205,6 +250,24 @@ export default function FilterBar({
                   />
                 );
               })}
+            </div>
+          </div>
+
+          <div>
+            <p className="eyebrow mb-2">Where it is</p>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUSES.map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => toggle("statuses", st.id)}
+                  data-active={filters.statuses.includes(st.id)}
+                  className="chip"
+                >
+                  <span aria-hidden>{st.emoji}</span>
+                  {st.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -314,6 +377,7 @@ export default function FilterBar({
               onClick={() =>
                 onChange({
                   ...EMPTY_FILTERS,
+                  scope: filters.scope,
                   search: filters.search,
                   sort: filters.sort,
                 })

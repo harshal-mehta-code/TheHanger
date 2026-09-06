@@ -9,6 +9,7 @@ import {
   CloseIcon,
   EditIcon,
   HeartIcon,
+  SparkleIcon,
   TrashIcon,
 } from "./Icons";
 import {
@@ -16,8 +17,9 @@ import {
   COLOR_BY_ID,
   FORMALITIES,
   SEASON_LABEL,
+  STATUSES,
 } from "@/lib/taxonomy";
-import type { Item } from "@/lib/types";
+import type { Item, ItemStatus } from "@/lib/types";
 import { costPerWear, formatLastWorn, todayISO } from "@/lib/wardrobe";
 
 interface Props {
@@ -27,6 +29,8 @@ interface Props {
   onDelete: () => void;
   onToggleFavorite: () => void;
   onToggleArchived: () => void;
+  onToggleWishlist: () => void;
+  onSetStatus: (status: ItemStatus) => void;
   onLogWear: (date: string) => void;
   onRemoveWear: (date: string) => void;
 }
@@ -56,6 +60,8 @@ export default function ItemDetail({
   onDelete,
   onToggleFavorite,
   onToggleArchived,
+  onToggleWishlist,
+  onSetStatus,
   onLogWear,
   onRemoveWear,
 }: Props) {
@@ -98,31 +104,44 @@ export default function ItemDetail({
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onLogWear(todayISO())}
-              disabled={wornToday}
-              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
-            >
-              <CheckIcon className="h-4 w-4" />
-              {wornToday ? "Worn today" : "Wore it today"}
-            </button>
+            {item.wishlist ? (
+              <button
+                type="button"
+                onClick={onToggleWishlist}
+                className="btn-primary flex-1 sm:flex-none"
+              >
+                <SparkleIcon className="h-4 w-4" />
+                I bought it
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onLogWear(todayISO())}
+                disabled={wornToday}
+                className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
+              >
+                <CheckIcon className="h-4 w-4" />
+                {wornToday ? "Worn today" : "Wore it today"}
+              </button>
+            )}
             <button type="button" onClick={onEdit} className="btn-ghost">
               <EditIcon className="h-4 w-4" /> Edit
             </button>
-            <button
-              type="button"
-              onClick={onToggleArchived}
-              className="btn-ghost"
-              title={
-                item.archived
-                  ? "Move back into the active closet"
-                  : "Move to the archive (donate / store away)"
-              }
-            >
-              <ArchiveIcon className="h-4 w-4" />
-              {item.archived ? "Unarchive" : "Archive"}
-            </button>
+            {!item.wishlist && (
+              <button
+                type="button"
+                onClick={onToggleArchived}
+                className="btn-ghost"
+                title={
+                  item.archived
+                    ? "Move back into the active closet"
+                    : "Move to the archive (donate / store away)"
+                }
+              >
+                <ArchiveIcon className="h-4 w-4" />
+                {item.archived ? "Unarchive" : "Archive"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setConfirmingDelete(true)}
@@ -173,14 +192,43 @@ export default function ItemDetail({
             </p>
           </div>
 
+          {!item.wishlist && (
+          <div>
+            <p className="eyebrow mb-1.5">Right now</p>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUSES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => onSetStatus(s.id)}
+                  data-active={item.status === s.id}
+                  className="chip"
+                >
+                  <span aria-hidden>{s.emoji}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
+            {!item.wishlist && (
             <span className="rounded-full bg-bone px-3 py-1.5 text-xs font-semibold">
               Worn {item.wears.length}{" "}
               {item.wears.length === 1 ? "time" : "times"}
             </span>
+            )}
+            {!item.wishlist && (
             <span className="rounded-full bg-bone px-3 py-1.5 text-xs font-semibold">
               {formatLastWorn(item)}
             </span>
+            )}
+            {item.wishlist && (
+              <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-[#8a6a1f]">
+                On the wishlist
+              </span>
+            )}
             {cpw !== null && (
               <span
                 className="rounded-full bg-sage-soft px-3 py-1.5 text-xs font-semibold text-sage"

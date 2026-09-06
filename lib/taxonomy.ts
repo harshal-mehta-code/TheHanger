@@ -1,4 +1,4 @@
-import type { CategoryId, Formality, Season } from "./types";
+import type { CategoryId, Formality, ItemStatus, Season } from "./types";
 
 export interface CategoryMeta {
   id: CategoryId;
@@ -52,6 +52,27 @@ export const FORMALITIES: { id: Formality; label: string }[] = [
   { id: "party", label: "Party" },
   { id: "formal", label: "Formal" },
 ];
+
+export interface StatusMeta {
+  id: ItemStatus;
+  label: string;
+  /** Wording used on the card badge, shorter than the menu label. */
+  short: string;
+  emoji: string;
+  /** Ready is the default and deliberately gets no badge. */
+  badge: boolean;
+}
+
+export const STATUSES: StatusMeta[] = [
+  { id: "ready", label: "Ready to wear", short: "Ready", emoji: "✨", badge: false },
+  { id: "wash", label: "In the wash", short: "In the wash", emoji: "🧺", badge: true },
+  { id: "cleaner", label: "At the cleaner", short: "At cleaner", emoji: "🧼", badge: true },
+  { id: "repair", label: "Needs repair", short: "Needs repair", emoji: "🪡", badge: true },
+];
+
+export const STATUS_BY_ID: Record<ItemStatus, StatusMeta> = Object.fromEntries(
+  STATUSES.map((s) => [s.id, s]),
+) as Record<ItemStatus, StatusMeta>;
 
 export interface ColorMeta {
   id: string;

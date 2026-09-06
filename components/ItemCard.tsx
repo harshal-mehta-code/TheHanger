@@ -2,7 +2,7 @@
 
 import ItemPhoto from "./ItemPhoto";
 import { CheckIcon, HeartIcon } from "./Icons";
-import { COLOR_BY_ID, SEASONS } from "@/lib/taxonomy";
+import { COLOR_BY_ID, SEASONS, STATUS_BY_ID } from "@/lib/taxonomy";
 import type { Item } from "@/lib/types";
 import { daysSinceWorn, formatLastWorn } from "@/lib/wardrobe";
 
@@ -27,6 +27,7 @@ export default function ItemCard({
   const days = daysSinceWorn(item);
   const neglected = days === null || days >= 90;
   const color = item.color ? COLOR_BY_ID[item.color] : undefined;
+  const status = STATUS_BY_ID[item.status] ?? STATUS_BY_ID.ready;
 
   return (
     <div
@@ -53,7 +54,16 @@ export default function ItemCard({
             </span>
           )}
 
-          {!item.archived && neglected && (
+          {/* Where a piece is beats how long since it was worn: if it's in the
+              wash, "needs love" is not the useful thing to say. */}
+          {!item.archived && status.badge && (
+            <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-shell/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-soft backdrop-blur-sm">
+              <span aria-hidden>{status.emoji}</span>
+              {status.short}
+            </span>
+          )}
+
+          {!item.archived && !status.badge && neglected && (
             <span className="absolute left-2.5 top-2.5 rounded-full bg-gold-soft/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a6a1f] backdrop-blur-sm">
               {days === null ? "Unworn" : "Needs love"}
             </span>
