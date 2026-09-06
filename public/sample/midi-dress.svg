@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-midi-dress" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f5ede7"/>
+      <stop offset="1" stop-color="#dfd4cb"/>
+    </linearGradient>
+    <linearGradient id="cloth-midi-dress" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#c95a54"/>
+      <stop offset="0.5" stop-color="#bf3b34"/>
+      <stop offset="1" stop-color="#992f2a"/>
+    </linearGradient>
+    <linearGradient id="cloth2-midi-dress" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b43731"/>
+      <stop offset="1" stop-color="#862924"/>
+    </linearGradient>
+    <radialGradient id="vig-midi-dress" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-midi-dress" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-midi-dress" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-midi-dress)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-midi-dress)"/>
+    <g filter="url(#drop-midi-dress)">
+  <path d="M236 178 L196 200 Q166 216 160 246 L142 322 Q139 336 153 341 L186 352 Q198 356 202 344 L212 312 L206 372 L394 372 L388 312 L398 344 Q402 356 414 352 L447 341 Q461 336 458 322 L440 246 Q434 216 404 200 L364 178 L300 236 Z" fill="url(#cloth-midi-dress)"/>
+  <path d="M236 178 L300 236 L364 178 L344 168 Q300 198 256 168 Z" fill="url(#cloth2-midi-dress)"/>
+  <path d="M204 366 L396 366 L410 480 L190 480 Z" fill="url(#cloth-midi-dress)"/>
+  <path d="M188 474 L412 474 L432 596 L168 596 Z" fill="url(#cloth2-midi-dress)"/>
+  <path d="M166 590 L434 590 L456 706 Q458 720 442 720 L158 720 Q142 720 144 706 Z" fill="url(#cloth-midi-dress)"/>
+  <path d="M300 240 L300 366" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M204 372 L396 372" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M188 480 L412 480" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M166 596 L434 596" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M206 372 L394 372 L396 392 L204 392 Z" fill="#000" fill-opacity="0.08"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-midi-dress)"/>
+</svg>

@@ -255,20 +255,41 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const seedSample = useCallback(async () => {
     const now = Date.now();
     const dayMs = 86_400_000;
-    const seeded: Item[] = SAMPLE_CLOSET.map(({ wearsAgo, ...draft }, i) => ({
-      ...draft,
-      id: newId(),
-      favorite: draft.favorite ?? false,
-      archived: draft.archived ?? false,
-      wears: [...wearsAgo]
-        .sort((a, b) => b - a)
-        .map((days) => ({
-          date: new Date(now - days * dayMs).toISOString().slice(0, 10),
-        })),
-      // Stagger creation times so "newest first" has a sensible order.
-      createdAt: now - i * 60_000,
-      updatedAt: now,
-    }));
+
+    const seeded: Item[] = [];
+    for (const [i, { wearsAgo, art, ...draft }] of SAMPLE_CLOSET.entries()) {
+      // Sample artwork is stored exactly like an uploaded photo, so the demo
+      // exercises the same read path as a real closet.
+      let imageId: string | undefined;
+      if (art) {
+        try {
+          const res = await fetch(`/sample/${art}.svg`);
+          if (res.ok) {
+            imageId = newId();
+            await db.writeImage(imageId, await res.blob());
+          }
+        } catch {
+          // A missing flat-lay just falls back to the category glyph.
+        }
+      }
+
+      seeded.push({
+        ...draft,
+        id: newId(),
+        imageId,
+        favorite: draft.favorite ?? false,
+        archived: draft.archived ?? false,
+        wears: [...wearsAgo]
+          .sort((a, b) => b - a)
+          .map((days) => ({
+            date: new Date(now - days * dayMs).toISOString().slice(0, 10),
+          })),
+        // Stagger creation times so "newest first" has a sensible order.
+        createdAt: now - i * 60_000,
+        updatedAt: now,
+      });
+    }
+
     for (const item of seeded) await db.writeItem(item);
     setItems((prev) => [...prev, ...seeded]);
     return seeded.length;

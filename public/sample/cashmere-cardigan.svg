@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-cashmere-cardigan" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f3ede4"/>
+      <stop offset="1" stop-color="#dbd3c7"/>
+    </linearGradient>
+    <linearGradient id="cloth-cashmere-cardigan" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#decdb6"/>
+      <stop offset="0.5" stop-color="#d8c4a8"/>
+      <stop offset="1" stop-color="#ad9d86"/>
+    </linearGradient>
+    <linearGradient id="cloth2-cashmere-cardigan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#cbb89e"/>
+      <stop offset="1" stop-color="#978976"/>
+    </linearGradient>
+    <radialGradient id="vig-cashmere-cardigan" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-cashmere-cardigan" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-cashmere-cardigan" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-cashmere-cardigan)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-cashmere-cardigan)"/>
+    <g filter="url(#drop-cashmere-cardigan)">
+  <path d="M228 200 L182 220 Q146 238 138 274 L110 398 Q106 414 122 420 L164 434 Q178 438 182 424 L196 380 L194 588 Q194 620 224 622 L376 622 Q406 620 406 588 L404 380 L418 424 Q422 438 436 434 L478 420 Q494 414 490 398 L462 274 Q454 238 418 220 L372 200 Q300 244 228 200 Z" fill="url(#cloth-cashmere-cardigan)"/>
+  <path d="M286 214 L286 618 L314 618 L314 214 Q300 220 286 214 Z" fill="url(#cloth2-cashmere-cardigan)" opacity="0.75"/>
+  <path d="M232 214 Q252 258 258 320" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M368 214 Q348 258 342 320" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <g fill="#fff" fill-opacity="0.6">
+    <circle cx="300" cy="300" r="7"/><circle cx="300" cy="372" r="7"/>
+    <circle cx="300" cy="444" r="7"/><circle cx="300" cy="516" r="7"/>
+  </g>
+  <g stroke="#000" stroke-opacity="0.10" stroke-width="2" fill="none">
+    <path d="M222 400 L222 600"/><path d="M254 396 L254 604"/>
+    <path d="M346 396 L346 604"/><path d="M378 400 L378 600"/>
+  </g></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-cashmere-cardigan)"/>
+</svg>

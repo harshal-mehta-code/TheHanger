@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-wool-coat" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f4efe8"/>
+      <stop offset="1" stop-color="#ddd6cd"/>
+    </linearGradient>
+    <linearGradient id="cloth-wool-coat" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#ccaf8d"/>
+      <stop offset="0.5" stop-color="#c2a077"/>
+      <stop offset="1" stop-color="#9b805f"/>
+    </linearGradient>
+    <linearGradient id="cloth2-wool-coat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b69670"/>
+      <stop offset="1" stop-color="#887053"/>
+    </linearGradient>
+    <radialGradient id="vig-wool-coat" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-wool-coat" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-wool-coat" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-wool-coat)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-wool-coat)"/>
+    <g filter="url(#drop-wool-coat)">
+  <path d="M224 178 L176 200 Q138 220 130 258 L100 396 Q96 414 113 420 L158 434 Q173 438 177 424 L192 376 L188 664 Q188 692 216 694 L384 694 Q412 692 412 664 L408 376 L423 424 Q427 438 442 434 L487 420 Q504 414 500 396 L470 258 Q462 220 424 200 L376 178 L300 250 Z" fill="url(#cloth-wool-coat)"/>
+  <path d="M224 178 L300 250 L268 690 L216 692 Q188 690 188 664 L192 376 L177 424 Q173 438 158 434 L113 420 Q96 414 100 396 L130 258 Q138 220 176 200 Z" fill="url(#cloth2-wool-coat)" opacity="0.55"/>
+  <path d="M224 178 L300 250 L262 262 Q232 224 210 190 Z" fill="#fff" fill-opacity="0.2"/>
+  <path d="M376 178 L300 250 L338 262 Q368 224 390 190 Z" fill="#fff" fill-opacity="0.2"/>
+  <path d="M186 430 L414 430 L414 470 L186 470 Z" fill="url(#cloth2-wool-coat)"/>
+  <rect x="272" y="424" width="56" height="52" rx="8" fill="#000" fill-opacity="0.22"/>
+  <g fill="#000" fill-opacity="0.2">
+    <circle cx="252" cy="352" r="8"/><circle cx="348" cy="352" r="8"/>
+    <circle cx="252" cy="546" r="8"/><circle cx="348" cy="546" r="8"/>
+  </g>
+  <path d="M232 500 L232 560" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M368 500 L368 560" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-wool-coat)"/>
+</svg>

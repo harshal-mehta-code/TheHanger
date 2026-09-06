@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-pearl-studs" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#efe8e0"/>
+      <stop offset="1" stop-color="#d6cdc1"/>
+    </linearGradient>
+    <linearGradient id="cloth-pearl-studs" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#f4efe7"/>
+      <stop offset="0.5" stop-color="#f2ece2"/>
+      <stop offset="1" stop-color="#c2bdb5"/>
+    </linearGradient>
+    <linearGradient id="cloth2-pearl-studs" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e3ded4"/>
+      <stop offset="1" stop-color="#a9a59e"/>
+    </linearGradient>
+    <radialGradient id="vig-pearl-studs" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-pearl-studs" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-pearl-studs" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-pearl-studs)"/>
+  <g transform="translate(300 430) scale(1.85) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-pearl-studs)"/>
+    <g filter="url(#drop-pearl-studs)"><defs>
+      <radialGradient id="pearl" cx="0.34" cy="0.3" r="0.82">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset="0.55" stop-color="#f4efe6"/>
+        <stop offset="1" stop-color="#d9cdba"/>
+      </radialGradient>
+    </defs>
+    <g>
+      <ellipse cx="214" cy="448" rx="46" ry="11" fill="#3a2c22" opacity="0.16"/>
+      <circle cx="214" cy="386" r="52" fill="url(#pearl)"/>
+      <ellipse cx="198" cy="366" rx="17" ry="12" transform="rotate(-28 198 366)" fill="#fff" fill-opacity="0.85"/>
+      <path d="M170 408 A52 52 0 0 0 250 424" fill="none" stroke="#b9a68c" stroke-opacity="0.5" stroke-width="7"/>
+      <g transform="translate(214 386)">
+        <rect x="26" y="30" width="34" height="7" rx="3.5" transform="rotate(38)" fill="#c9ab63"/>
+        <circle cx="45" cy="49" r="10" fill="#d8bd7d"/>
+        <circle cx="45" cy="49" r="4.5" fill="#a98a4c"/>
+      </g>
+    </g>
+    <g>
+      <ellipse cx="388" cy="486" rx="46" ry="11" fill="#3a2c22" opacity="0.16"/>
+      <circle cx="388" cy="424" r="52" fill="url(#pearl)"/>
+      <ellipse cx="372" cy="404" rx="17" ry="12" transform="rotate(-28 372 404)" fill="#fff" fill-opacity="0.85"/>
+      <path d="M344 446 A52 52 0 0 0 424 462" fill="none" stroke="#b9a68c" stroke-opacity="0.5" stroke-width="7"/>
+      <g transform="translate(388 424)">
+        <rect x="26" y="30" width="34" height="7" rx="3.5" transform="rotate(38)" fill="#c9ab63"/>
+        <circle cx="45" cy="49" r="10" fill="#d8bd7d"/>
+        <circle cx="45" cy="49" r="4.5" fill="#a98a4c"/>
+      </g>
+    </g></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-pearl-studs)"/>
+</svg>

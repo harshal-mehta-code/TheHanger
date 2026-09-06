@@ -38,6 +38,7 @@ export default function ClosetPage() {
     toggleArchived,
     logWear,
     removeWear,
+    seedSample,
   } = useCloset();
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -178,7 +179,13 @@ export default function ClosetPage() {
       {!ready ? (
         <SkeletonGrid />
       ) : !hasCloset ? (
-        <EmptyCloset onAdd={() => setEditing({ mode: "new" })} />
+        <EmptyCloset
+          onAdd={() => setEditing({ mode: "new" })}
+          onSample={async () => {
+            const n = await seedSample();
+            flash(`Added ${n} sample pieces to explore.`);
+          }}
+        />
       ) : (
         <div className="space-y-6">
           <ClosetPulse
@@ -326,7 +333,14 @@ function SkeletonGrid() {
   );
 }
 
-function EmptyCloset({ onAdd }: { onAdd: () => void }) {
+function EmptyCloset({
+  onAdd,
+  onSample,
+}: {
+  onAdd: () => void;
+  onSample: () => Promise<void>;
+}) {
+  const [seeding, setSeeding] = useState(false);
   return (
     <div className="animate-rise card-surface mx-auto mt-6 max-w-xl px-6 py-14 text-center">
       <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-berry-soft text-berry">
@@ -340,10 +354,27 @@ function EmptyCloset({ onAdd }: { onAdd: () => void }) {
         to. Everything else, from wear tracking to what you&apos;ve forgotten
         about, builds itself from there.
       </p>
-      <button type="button" onClick={onAdd} className="btn-primary mx-auto mt-6">
-        <SparkleIcon className="h-4 w-4" />
-        Add your first piece
-      </button>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <button type="button" onClick={onAdd} className="btn-primary">
+          <SparkleIcon className="h-4 w-4" />
+          Add your first piece
+        </button>
+        <button
+          type="button"
+          disabled={seeding}
+          onClick={async () => {
+            setSeeding(true);
+            try {
+              await onSample();
+            } finally {
+              setSeeding(false);
+            }
+          }}
+          className="btn-ghost disabled:opacity-55"
+        >
+          {seeding ? "Filling the rail…" : "Browse a sample closet"}
+        </button>
+      </div>
     </div>
   );
 }

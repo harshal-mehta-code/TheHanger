@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-ankle-boots" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f5efe8"/>
+      <stop offset="1" stop-color="#ded7cd"/>
+    </linearGradient>
+    <linearGradient id="cloth-ankle-boots" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#9d745b"/>
+      <stop offset="0.5" stop-color="#8a5a3c"/>
+      <stop offset="1" stop-color="#6e4830"/>
+    </linearGradient>
+    <linearGradient id="cloth2-ankle-boots" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#825538"/>
+      <stop offset="1" stop-color="#613f2a"/>
+    </linearGradient>
+    <radialGradient id="vig-ankle-boots" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-ankle-boots" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-ankle-boots" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-ankle-boots)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-ankle-boots)"/>
+    <g filter="url(#drop-ankle-boots)">
+    <g transform="translate(30 0)">
+      <path d="M96 250 Q92 236 108 234 L186 234 Q202 236 200 252 L192 400 Q190 430 208 448 L236 474 Q248 486 246 502 L244 528 Q243 542 228 542 L104 542 Q90 542 90 528 L92 300 Z" fill="url(#cloth-ankle-boots)"/>
+      <path d="M90 528 L246 528 L246 556 Q246 568 232 568 L104 568 Q90 568 90 556 Z" fill="#2f2622"/>
+      <path d="M96 250 Q92 236 108 234 L186 234 Q202 236 200 252 L198 288 L94 288 Z" fill="#fff" fill-opacity="0.14"/>
+      <path d="M120 300 Q116 420 116 520" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+      <path d="M104 470 L236 470" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+      <path d="M186 246 Q214 300 210 380" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="3"/>
+    </g>
+    <g transform="translate(310 0) scale(-1 1) translate(-260 0)">
+      <path d="M96 250 Q92 236 108 234 L186 234 Q202 236 200 252 L192 400 Q190 430 208 448 L236 474 Q248 486 246 502 L244 528 Q243 542 228 542 L104 542 Q90 542 90 528 L92 300 Z" fill="url(#cloth-ankle-boots)"/>
+      <path d="M90 528 L246 528 L246 556 Q246 568 232 568 L104 568 Q90 568 90 556 Z" fill="#2f2622"/>
+      <path d="M96 250 Q92 236 108 234 L186 234 Q202 236 200 252 L198 288 L94 288 Z" fill="#fff" fill-opacity="0.14"/>
+      <path d="M120 300 Q116 420 116 520" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+      <path d="M104 470 L236 470" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+      <path d="M186 246 Q214 300 210 380" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="3"/>
+    </g></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-ankle-boots)"/>
+</svg>

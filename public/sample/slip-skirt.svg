@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-slip-skirt" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f1ede6"/>
+      <stop offset="1" stop-color="#dad4c9"/>
+    </linearGradient>
+    <linearGradient id="cloth-slip-skirt" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#50836b"/>
+      <stop offset="0.5" stop-color="#2f6b4f"/>
+      <stop offset="1" stop-color="#26563f"/>
+    </linearGradient>
+    <linearGradient id="cloth2-slip-skirt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2c654a"/>
+      <stop offset="1" stop-color="#214b37"/>
+    </linearGradient>
+    <radialGradient id="vig-slip-skirt" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-slip-skirt" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-slip-skirt" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-slip-skirt)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-slip-skirt)"/>
+    <g filter="url(#drop-slip-skirt)">
+  <path d="M214 216 L386 216 L390 262 L210 262 Z" fill="url(#cloth2-slip-skirt)"/>
+  <path d="M210 258 L390 258 L436 618 Q438 634 420 636 L180 636 Q162 634 164 618 Z" fill="url(#cloth-slip-skirt)"/>
+  <path d="M262 264 Q246 440 224 626" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M338 264 Q354 440 376 626" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M300 262 L300 632" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M210 258 L390 258 L394 292 Q300 306 206 292 Z" fill="#fff" fill-opacity="0.14"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-slip-skirt)"/>
+</svg>

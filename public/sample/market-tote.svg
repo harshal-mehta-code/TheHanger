@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-market-tote" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f3ede6"/>
+      <stop offset="1" stop-color="#dbd4c9"/>
+    </linearGradient>
+    <linearGradient id="cloth-market-tote" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#dfcaa3"/>
+      <stop offset="0.5" stop-color="#d9c092"/>
+      <stop offset="1" stop-color="#ae9a75"/>
+    </linearGradient>
+    <linearGradient id="cloth2-market-tote" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ccb489"/>
+      <stop offset="1" stop-color="#988666"/>
+    </linearGradient>
+    <radialGradient id="vig-market-tote" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-market-tote" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-market-tote" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-market-tote)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-market-tote)"/>
+    <g filter="url(#drop-market-tote)">
+  <path d="M170 330 L430 330 L462 646 Q464 664 446 664 L154 664 Q136 664 138 646 Z" fill="url(#cloth-market-tote)"/>
+  <g fill="none" stroke="#000" stroke-opacity="0.10" stroke-width="2">
+    <path d="M172 334 L166 660"/><path d="M198 334 L194 660"/><path d="M224 334 L222 660"/><path d="M250 334 L250 660"/><path d="M276 334 L278 660"/><path d="M302 334 L306 660"/><path d="M328 334 L334 660"/><path d="M354 334 L362 660"/><path d="M380 334 L390 660"/><path d="M406 334 L418 660"/><path d="M432 334 L446 660"/>
+    <path d="M170 360 L430 360"/><path d="M168.4 396 L431.6 396"/><path d="M166.8 432 L433.2 432"/><path d="M165.2 468 L434.8 468"/><path d="M163.6 504 L436.4 504"/><path d="M162 540 L438 540"/><path d="M160.4 576 L439.6 576"/><path d="M158.8 612 L441.2 612"/><path d="M157.2 648 L442.8 648"/>
+  </g>
+  <path d="M170 330 L430 330 L436 386 L164 386 Z" fill="#fff" fill-opacity="0.16"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M226 340 Q220 196 300 194 Q380 196 374 340" stroke="url(#cloth2-market-tote)" stroke-width="18"/>
+    <path d="M232 236 Q262 202 300 200 Q338 202 368 236" stroke="#fff" stroke-opacity="0.22" stroke-width="7"/>
+  </g></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-market-tote)"/>
+</svg>

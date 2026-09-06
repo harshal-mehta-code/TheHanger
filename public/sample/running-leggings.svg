@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-running-leggings" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f2ede7"/>
+      <stop offset="1" stop-color="#dbd4cb"/>
+    </linearGradient>
+    <linearGradient id="cloth-running-leggings" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#67676a"/>
+      <stop offset="0.5" stop-color="#4a4a4e"/>
+      <stop offset="1" stop-color="#3b3b3e"/>
+    </linearGradient>
+    <linearGradient id="cloth2-running-leggings" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#464649"/>
+      <stop offset="1" stop-color="#343437"/>
+    </linearGradient>
+    <radialGradient id="vig-running-leggings" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-running-leggings" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-running-leggings" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-running-leggings)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-running-leggings)"/>
+    <g filter="url(#drop-running-leggings)">
+  <path d="M212 208 L388 208 L392 268 L208 268 Z" fill="url(#cloth2-running-leggings)"/>
+  <path d="M209 264 L391 264 L372 668 Q370 682 356 682 L322 682 Q310 682 309 670 L300 420 L291 670 Q290 682 278 682 L244 682 Q230 682 228 668 Z" fill="url(#cloth-running-leggings)"/>
+  <path d="M300 268 L300 420" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M244 300 Q234 500 240 664" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M356 300 Q366 500 360 664" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M212 208 L388 208 L390 232 L210 232 Z" fill="#fff" fill-opacity="0.16"/>
+  <path d="M266 300 Q262 480 258 660" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M334 300 Q338 480 342 660" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-running-leggings)"/>
+</svg>

@@ -8,6 +8,8 @@ import type { ItemDraft } from "./types";
  */
 export interface SampleSpec extends ItemDraft {
   wearsAgo: number[];
+  /** Basename under /public/sample, fetched and stored like an uploaded photo. */
+  art?: string;
 }
 
 export const SAMPLE_CLOSET: SampleSpec[] = [
@@ -23,6 +25,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     tags: ["office", "layering"],
     price: 98,
     favorite: true,
+    art: "silk-blouse",
     wearsAgo: [2, 11, 23, 40],
   },
   {
@@ -35,6 +38,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "work",
     tags: ["office", "everyday"],
     price: 135,
+    art: "wide-leg-trousers",
     wearsAgo: [1, 5, 9, 16, 28, 44],
   },
   {
@@ -48,6 +52,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     tags: ["date night", "wedding guest", "statement"],
     price: 248,
     favorite: true,
+    art: "midi-dress",
     wearsAgo: [64],
   },
   {
@@ -60,6 +65,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "everyday",
     tags: ["layering", "dry clean"],
     price: 420,
+    art: "wool-coat",
     wearsAgo: [128, 141],
   },
   {
@@ -72,6 +78,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "everyday",
     tags: ["everyday"],
     price: 178,
+    art: "ankle-boots",
     wearsAgo: [3, 8, 15, 31, 52],
   },
   {
@@ -81,6 +88,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     seasons: ["summer"],
     formality: "casual",
     tags: ["vacation", "weekend"],
+    art: "market-tote",
     wearsAgo: [210],
   },
   {
@@ -93,6 +101,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "party",
     tags: ["date night"],
     price: 88,
+    art: "slip-skirt",
     wearsAgo: [],
   },
   {
@@ -103,6 +112,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "formal",
     tags: ["sentimental", "wedding guest"],
     favorite: true,
+    art: "pearl-studs",
     wearsAgo: [64, 300],
   },
   {
@@ -115,6 +125,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "casual",
     tags: ["cozy", "layering"],
     price: 120,
+    art: "cashmere-cardigan",
     wearsAgo: [4, 12, 19, 26, 33, 47, 61],
   },
   {
@@ -127,6 +138,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "casual",
     tags: ["weekend", "everyday"],
     price: 98,
+    art: "straight-jeans",
     wearsAgo: [0, 6, 13, 20, 34],
   },
   {
@@ -139,6 +151,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     formality: "casual",
     tags: ["everyday"],
     price: 128,
+    art: "running-leggings",
     wearsAgo: [1, 3, 7, 10, 14, 21, 29],
   },
   {
@@ -148,6 +161,7 @@ export const SAMPLE_CLOSET: SampleSpec[] = [
     seasons: ["spring", "summer"],
     formality: "everyday",
     tags: ["statement", "vintage"],
+    art: "silk-scarf",
     wearsAgo: [188],
   },
 ];

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-straight-jeans" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f3eee7"/>
+      <stop offset="1" stop-color="#dbd5cb"/>
+    </linearGradient>
+    <linearGradient id="cloth-straight-jeans" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#5f7a9e"/>
+      <stop offset="0.5" stop-color="#41618c"/>
+      <stop offset="1" stop-color="#344e70"/>
+    </linearGradient>
+    <linearGradient id="cloth2-straight-jeans" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d5b84"/>
+      <stop offset="1" stop-color="#2e4462"/>
+    </linearGradient>
+    <radialGradient id="vig-straight-jeans" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-straight-jeans" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-straight-jeans" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-straight-jeans)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-straight-jeans)"/>
+    <g filter="url(#drop-straight-jeans)">
+  
+  <path d="M204 210 L396 210 L404 292 Q404 300 396 300 L204 300 Q196 300 196 292 Z" fill="url(#cloth2-straight-jeans)"/>
+  <path d="M199 296 L401 296 L414 660 Q440 676 420 678 L346 678 Q332 678 330 664 L300 400 L270 664 Q268 678 254 678 L180 678 Q160 676 162 660 Z" fill="url(#cloth-straight-jeans)"/>
+  <path d="M300 300 L300 400" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M232 320 Q222 500 210 660" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M368 320 Q378 500 390 660" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M204 236 L396 236" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <rect x="282" y="222" width="36" height="18" rx="4" fill="#000" fill-opacity="0.14"/>
+  <g fill="none" stroke="#000" stroke-opacity="0.13" stroke-width="2">
+    <path d="M226 318 Q244 340 262 322"/><path d="M338 322 Q356 340 374 318"/>
+  </g>
+  <g fill="none" stroke="#e8c98f" stroke-opacity="0.55" stroke-width="2.4" stroke-dasharray="7 5">
+    <path d="M204 240 L396 240"/>
+    <path d="M232 330 Q222 500 212 654"/>
+    <path d="M368 330 Q378 500 388 654"/>
+    <path d="M226 318 Q244 344 262 320"/>
+    <path d="M338 320 Q356 344 374 318"/>
+  </g>
+  <path d="M300 302 L300 396" stroke="#e8c98f" stroke-opacity="0.4" stroke-width="2" fill="none"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-straight-jeans)"/>
+</svg>

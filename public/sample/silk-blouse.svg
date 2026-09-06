@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="bg-silk-blouse" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f0e9e0"/>
+      <stop offset="1" stop-color="#d8cec1"/>
+    </linearGradient>
+    <linearGradient id="cloth-silk-blouse" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#f2eadd"/>
+      <stop offset="0.5" stop-color="#efe6d6"/>
+      <stop offset="1" stop-color="#bfb8ab"/>
+    </linearGradient>
+    <linearGradient id="cloth2-silk-blouse" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e1d8c9"/>
+      <stop offset="1" stop-color="#a7a196"/>
+    </linearGradient>
+    <radialGradient id="vig-silk-blouse" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a2c22" stop-opacity="0.13"/>
+    </radialGradient>
+    <filter id="soft-silk-blouse" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="drop-silk-blouse" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#3a2c22" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg-silk-blouse)"/>
+  <g transform="translate(300 430) scale(1.2) translate(-300 -430)">
+    <ellipse cx="300" cy="648" rx="196" ry="44" fill="#3a2c22" opacity="0.10" filter="url(#soft-silk-blouse)"/>
+    <g filter="url(#drop-silk-blouse)">
+  <path d="M232 196 L188 214 Q150 232 140 268 L112 384 Q108 400 124 406 L166 420 Q180 424 184 410 L196 372 L192 560 Q192 596 226 598 L374 598 Q408 596 408 560 L404 372 L416 410 Q420 424 434 420 L476 406 Q492 400 488 384 L460 268 Q450 232 412 214 L368 196 L300 268 Z" fill="url(#cloth-silk-blouse)"/>
+  <path d="M232 196 L300 268 L368 196 L344 186 Q300 216 256 186 Z" fill="url(#cloth2-silk-blouse)"/>
+  <path d="M300 276 L300 590" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M196 372 Q200 480 200 580" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <path d="M404 372 Q400 480 400 580" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round"/>
+  <g fill="#fff" fill-opacity="0.55">
+    <circle cx="300" cy="330" r="6"/><circle cx="300" cy="400" r="6"/>
+    <circle cx="300" cy="470" r="6"/><circle cx="300" cy="540" r="6"/>
+  </g>
+  <path d="M150 262 Q160 250 176 244" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M450 262 Q440 250 424 244" fill="none" stroke="#000" stroke-opacity="0.16" stroke-width="1.6" stroke-dasharray="6 5" stroke-linecap="round"/></g>
+  </g>
+  <rect width="600" height="800" fill="url(#vig-silk-blouse)"/>
+</svg>
