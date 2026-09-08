@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as db from "./db";
+import { thumbnailFrom } from "./image";
 import { PHOTO_BUCKET, photoPath } from "./supabase";
 import type { DayPlan, Inspo, Item, Outfit, Trip } from "./types";
 
@@ -13,6 +14,9 @@ import type { DayPlan, Inspo, Item, Outfit, Trip } from "./types";
  * piece loses) is far cheaper than the complexity of merging field by field.
  * Deletes travel as tombstones so they aren't undone by the other device.
  */
+
+/** Photo transfers in flight at once during a reconcile. */
+const PHOTO_CONCURRENCY = 6;
 
 export interface SyncResult {
   pulled: number;
@@ -208,38 +212,94 @@ function rowToTrip(row: Row): Trip {
 
 /* ---------------------------------------------------------------- photos */
 
-/** Upload a local photo if the cloud doesn't have it yet. */
-async function pushPhoto(
+/**
+ * Run an async job over a list a few at a time.
+ *
+ * Photo transfers used to run strictly one after another, which made a first
+ * sign-in on a second device a few hundred sequential round trips. Six at once
+ * is enough to saturate a phone connection without stampeding the bucket.
+ */
+async function mapLimit<T>(
+  values: T[],
+  limit: number,
+  run: (value: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, values.length) },
+    async () => {
+      while (cursor < values.length) {
+        const value = values[cursor++];
+        await run(value);
+      }
+    },
+  );
+  await Promise.all(workers);
+}
+
+async function uploadObject(
   supabase: SupabaseClient,
-  userId: string,
-  imageId: string,
+  path: string,
+  blob: Blob,
 ) {
-  const blob = await db.readImage(imageId);
-  if (!blob) return;
   // upsert:false means an object already there is left alone — photos are
   // immutable (replacing a photo mints a new id), so a conflict is a no-op.
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .upload(photoPath(userId, imageId), blob, {
+    .upload(path, blob, {
       contentType: blob.type || "image/jpeg",
       upsert: false,
+      cacheControl: "31536000",
     });
   // "already exists" is the expected happy path on a re-sync.
   if (error && !/exists|duplicate/i.test(error.message)) throw error;
 }
 
-/** Fetch a photo this device is missing into IndexedDB. */
+/** Upload a photo and its thumbnail if the cloud doesn't have them yet. */
+async function pushPhoto(
+  supabase: SupabaseClient,
+  userId: string,
+  imageId: string,
+) {
+  const [full, thumb] = await Promise.all([
+    db.readImage(imageId),
+    db.readImage(db.thumbKey(imageId)),
+  ]);
+  if (full) await uploadObject(supabase, photoPath(userId, imageId), full);
+  if (thumb) {
+    await uploadObject(supabase, photoPath(userId, db.thumbKey(imageId)), thumb);
+  }
+}
+
+/**
+ * Fetch a photo this device is missing. The thumbnail comes first: it is what
+ * the grid renders, it is a fraction of the bytes, and a closet that fills in
+ * while the full photos arrive is far better than a blank one that doesn't.
+ */
 async function pullPhoto(
   supabase: SupabaseClient,
   userId: string,
   imageId: string,
 ) {
-  if (await db.readImage(imageId)) return;
-  const { data, error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .download(photoPath(userId, imageId));
-  if (error || !data) return; // A missing photo shouldn't fail the whole sync.
-  await db.writeImage(imageId, data);
+  for (const key of [db.thumbKey(imageId), imageId]) {
+    if (await db.readImage(key)) continue;
+    const { data, error } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .download(photoPath(userId, key));
+    // A missing photo shouldn't fail the whole sync; a closet added to before
+    // thumbnails existed simply has no thumbnail to fetch.
+    if (error || !data) continue;
+    await db.writeImage(key, data);
+  }
+  // Older photos reached the cloud without a thumbnail. Deriving one here
+  // keeps the grid cheap on this device rather than re-downloading later.
+  if (!(await db.readImage(db.thumbKey(imageId)))) {
+    const full = await db.readImage(imageId);
+    if (full) {
+      const thumb = await thumbnailFrom(full);
+      if (thumb) await db.writeImage(db.thumbKey(imageId), thumb);
+    }
+  }
 }
 
 async function deletePhoto(
@@ -247,7 +307,27 @@ async function deletePhoto(
   userId: string,
   imageId: string,
 ) {
-  await supabase.storage.from(PHOTO_BUCKET).remove([photoPath(userId, imageId)]);
+  await supabase.storage
+    .from(PHOTO_BUCKET)
+    .remove([
+      photoPath(userId, imageId),
+      photoPath(userId, db.thumbKey(imageId)),
+    ]);
+}
+
+/**
+ * Drop photos the closet no longer points at. Replacing a photo mints a new
+ * id, so without this every re-shot piece left its predecessor in the bucket
+ * for good — a slow leak paid for in storage that nothing can ever reach.
+ */
+export async function pushPhotoDeletions(
+  supabase: SupabaseClient,
+  userId: string,
+  imageIds: string[],
+) {
+  for (const imageId of imageIds) {
+    await deletePhoto(supabase, userId, imageId);
+  }
 }
 
 /* ---------------------------------------------------------------- sync */
@@ -326,6 +406,7 @@ export async function syncAll(
     const localById = new Map(localItems.map((i) => [i.id, i]));
 
     const toUpsert: Row[] = [];
+    const photosToPush: string[] = [];
     for (const item of localItems) {
       const remote = remoteItems.get(item.id);
       const deletedAt = remoteDeletedAt(remote);
@@ -340,7 +421,7 @@ export async function syncAll(
           // Revived or edited here after the delete: ours is the newer fact,
           // and `deleted_at: null` in the pushed row clears the tombstone.
           toUpsert.push(itemToRow(item, userId));
-          if (item.imageId) await pushPhoto(supabase, userId, item.imageId);
+          if (item.imageId) photosToPush.push(item.imageId);
         }
         continue;
       }
@@ -349,20 +430,31 @@ export async function syncAll(
         : -1;
       if (item.updatedAt > remoteUpdated) {
         toUpsert.push(itemToRow(item, userId));
-        if (item.imageId) await pushPhoto(supabase, userId, item.imageId);
+        if (item.imageId) photosToPush.push(item.imageId);
       }
     }
 
+    const incoming: Item[] = [];
     for (const [id, row] of remoteItems) {
       if (row.deleted_at) continue;
       const local = localById.get(id);
       const remoteUpdated = new Date(String(row.updated_at)).getTime();
-      if (!local || remoteUpdated > local.updatedAt) {
-        const item = rowToItem(row);
-        if (item.imageId) await pullPhoto(supabase, userId, item.imageId);
-        await db.writeItem(item);
-        pulled++;
-      }
+      if (!local || remoteUpdated > local.updatedAt) incoming.push(rowToItem(row));
+    }
+
+    // Photos move before the records that name them, in both directions, so a
+    // record is never visible on a device that can't show its picture.
+    await mapLimit(photosToPush, PHOTO_CONCURRENCY, (imageId) =>
+      pushPhoto(supabase, userId, imageId),
+    );
+    await mapLimit(
+      incoming.map((i) => i.imageId).filter((x): x is string => Boolean(x)),
+      PHOTO_CONCURRENCY,
+      (imageId) => pullPhoto(supabase, userId, imageId),
+    );
+    for (const item of incoming) {
+      await db.writeItem(item);
+      pulled++;
     }
 
     if (toUpsert.length) {
@@ -387,6 +479,7 @@ export async function syncAll(
     const localInspoById = new Map(localInspo.map((x) => [x.id, x]));
 
     const inspoUpserts: Row[] = [];
+    const inspoPhotosToPush: string[] = [];
     for (const board of localInspo) {
       const remote = remoteInspo.get(board.id);
       const deletedAt = remoteDeletedAt(remote);
@@ -395,9 +488,7 @@ export async function syncAll(
           await db.trashInspo(board.id);
         } else {
           inspoUpserts.push(inspoToRow(board, userId));
-          for (const imageId of board.imageIds) {
-            await pushPhoto(supabase, userId, imageId);
-          }
+          inspoPhotosToPush.push(...board.imageIds);
         }
         continue;
       }
@@ -406,24 +497,31 @@ export async function syncAll(
         : -1;
       if (board.updatedAt > remoteUpdated) {
         inspoUpserts.push(inspoToRow(board, userId));
-        for (const imageId of board.imageIds) {
-          await pushPhoto(supabase, userId, imageId);
-        }
+        inspoPhotosToPush.push(...board.imageIds);
       }
     }
 
+    const incomingBoards: Inspo[] = [];
     for (const [id, row] of remoteInspo) {
       if (row.deleted_at) continue;
       const local = localInspoById.get(id);
       const remoteUpdated = new Date(String(row.updated_at)).getTime();
       if (!local || remoteUpdated > local.updatedAt) {
-        const board = rowToInspo(row);
-        for (const imageId of board.imageIds) {
-          await pullPhoto(supabase, userId, imageId);
-        }
-        await db.writeInspo(board);
-        pulled++;
+        incomingBoards.push(rowToInspo(row));
       }
+    }
+
+    await mapLimit(inspoPhotosToPush, PHOTO_CONCURRENCY, (imageId) =>
+      pushPhoto(supabase, userId, imageId),
+    );
+    await mapLimit(
+      incomingBoards.flatMap((b) => b.imageIds),
+      PHOTO_CONCURRENCY,
+      (imageId) => pullPhoto(supabase, userId, imageId),
+    );
+    for (const board of incomingBoards) {
+      await db.writeInspo(board);
+      pulled++;
     }
 
     if (inspoUpserts.length) {

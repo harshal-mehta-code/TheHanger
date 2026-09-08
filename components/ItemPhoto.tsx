@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getImageUrl } from "@/lib/db";
+import { getImageUrl, getThumbUrl } from "@/lib/db";
 import { CATEGORY_EMOJI } from "@/lib/taxonomy";
 import type { CategoryId } from "@/lib/types";
 
@@ -34,13 +34,17 @@ export default function ItemPhoto({
   useEffect(() => {
     if (!imageId) return;
     let cancelled = false;
-    getImageUrl(imageId).then((url) => {
+    // A grid card gets the thumbnail: same picture at a twentieth of the
+    // decoded memory, which is the difference between a 300-piece closet
+    // scrolling smoothly on a phone and the tab being killed.
+    const load = size === "sheet" ? getImageUrl : getThumbUrl;
+    load(imageId).then((url) => {
       if (!cancelled && url) setResolved({ id: imageId, url });
     });
     return () => {
       cancelled = true;
     };
-  }, [imageId]);
+  }, [imageId, size]);
 
   const url = imageId && resolved?.id === imageId ? resolved.url : null;
 

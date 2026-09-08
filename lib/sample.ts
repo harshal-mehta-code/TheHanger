@@ -6,6 +6,13 @@ import type { ItemDraft } from "./types";
  * freshly lived-in. Sample pieces carry no photos — the category glyph stands
  * in, which is exactly what a real un-photographed piece looks like.
  */
+/**
+ * Marks a piece as coming from the demo closet. Sample pieces sync like any
+ * other, so without a marker the only way to get them out of a real account
+ * was to delete each one by hand.
+ */
+export const SAMPLE_TAG = "sample";
+
 export interface SampleSpec extends ItemDraft {
   wearsAgo: number[];
   /** Basename under /public/sample, fetched and stored like an uploaded photo. */

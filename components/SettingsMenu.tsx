@@ -32,6 +32,8 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
     exportBackup,
     importBackup,
     seedSample,
+    sampleCount,
+    removeSample,
     resetCloset,
     syncState,
     trash,
@@ -232,6 +234,29 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
               hint="See how it feels with pieces in it"
               disabled={busy}
               onClick={handleSample}
+            />
+          )}
+
+          {/* The demo pieces sync like any other, so there has to be a way out
+              of them that isn't deleting twelve things one at a time. */}
+          {sampleCount > 0 && (
+            <MenuItem
+              icon={<SparkleIcon className="h-4 w-4" />}
+              label="Remove sample pieces"
+              hint={`${sampleCount} demo ${sampleCount === 1 ? "piece" : "pieces"} still here`}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const gone = await removeSample();
+                  onNotify(
+                    `Removed ${gone} sample ${gone === 1 ? "piece" : "pieces"}.`,
+                  );
+                  close();
+                } finally {
+                  setBusy(false);
+                }
+              }}
             />
           )}
 

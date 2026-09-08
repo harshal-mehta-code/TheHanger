@@ -3,13 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import { CameraIcon, CloseIcon, PlusIcon } from "./Icons";
-import { compressImage } from "@/lib/image";
+import {
+  looksLikeImage,
+  preparePhoto,
+  UnreadablePhotoError,
+  type PreparedPhoto,
+} from "@/lib/image";
 import { CATEGORIES, SEASONS } from "@/lib/taxonomy";
 import type { CategoryId, ItemDraft, Season } from "@/lib/types";
 
 interface Draft {
   key: string;
-  blob: Blob;
+  photo: PreparedPhoto;
   preview: string;
   name: string;
   category: CategoryId;
@@ -18,7 +23,9 @@ interface Draft {
 
 interface Props {
   onClose: () => void;
-  onSave: (entries: { draft: ItemDraft; photo: Blob }[]) => Promise<void>;
+  /** Saves one piece. Called per draft so a failure halfway can't duplicate. */
+  onSaveEntry: (draft: ItemDraft, photo: PreparedPhoto) => Promise<void>;
+  onDone: (saved: number) => void;
 }
 
 let counter = 0;
@@ -28,7 +35,7 @@ let counter = 0;
  * like this. Quick add takes a batch of photos and asks only for the fields you
  * can't infer later — everything else can be filled in per piece afterwards.
  */
-export default function QuickAdd({ onClose, onSave }: Props) {
+export default function QuickAdd({ onClose, onSaveEntry, onDone }: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,7 +56,7 @@ export default function QuickAdd({ onClose, onSave }: Props) {
     setProcessing(true);
     setProblem(null);
 
-    const images = [...files].filter((f) => f.type.startsWith("image/"));
+    const images = [...files].filter(looksLikeImage);
     if (images.length === 0) {
       setProblem("None of those were images.");
       setProcessing(false);
@@ -58,13 +65,23 @@ export default function QuickAdd({ onClose, onSave }: Props) {
 
     try {
       const added: Draft[] = [];
+      // One unreadable photo — an iPhone HEIC opened on a laptop, say —
+      // shouldn't throw away the rest of the batch she just picked.
+      const skipped: string[] = [];
       for (const file of images) {
-        const blob = await compressImage(file);
-        const preview = URL.createObjectURL(blob);
+        let photo: PreparedPhoto;
+        try {
+          photo = await preparePhoto(file);
+        } catch (err) {
+          if (!(err instanceof UnreadablePhotoError)) throw err;
+          skipped.push(file.name);
+          continue;
+        }
+        const preview = URL.createObjectURL(photo.thumb);
         previews.current.push(preview);
         added.push({
           key: `qa-${counter++}`,
-          blob,
+          photo,
           preview,
           // The filename is usually noise (IMG_4821), so start empty and let
           // the category carry the name until she renames it.
@@ -74,8 +91,13 @@ export default function QuickAdd({ onClose, onSave }: Props) {
         });
       }
       setDrafts((prev) => [...prev, ...added]);
-      if (images.length < files.length) {
-        setProblem(`Skipped ${files.length - images.length} non-image file(s).`);
+      const notImages = files.length - images.length;
+      if (skipped.length) {
+        setProblem(
+          `Couldn't read ${skipped.length} of those — iPhone HEIC photos need to be added from the phone, or exported as JPEG first.`,
+        );
+      } else if (notImages) {
+        setProblem(`Skipped ${notImages} non-image file(s).`);
       }
     } catch {
       setProblem("Something went wrong reading those photos.");
@@ -98,10 +120,13 @@ export default function QuickAdd({ onClose, onSave }: Props) {
     if (drafts.length === 0) return;
     setSaving(true);
     try {
-      await onSave(
-        drafts.map((d) => ({
-          photo: d.blob,
-          draft: {
+      // Saved one at a time, dropping each draft as it lands. Saving the batch
+      // in one call meant a failure partway left the successes on screen, and
+      // pressing Add again added them a second time.
+      let saved = 0;
+      for (const d of [...drafts]) {
+        await onSaveEntry(
+          {
             name:
               d.name.trim() ||
               // Singularised category label, e.g. "Dresses" -> "Dress".
@@ -113,8 +138,12 @@ export default function QuickAdd({ onClose, onSave }: Props) {
             seasons: d.seasons,
             tags: [],
           },
-        })),
-      );
+          d.photo,
+        );
+        remove(d.key);
+        saved++;
+      }
+      onDone(saved);
       onClose();
     } catch {
       setProblem("Couldn't save those. Your browser storage may be full.");
@@ -126,6 +155,7 @@ export default function QuickAdd({ onClose, onSave }: Props) {
     <Modal
       title="Quick add"
       onClose={onClose}
+      dirty={drafts.length > 0}
       wide
       footer={
         <div className="flex flex-wrap items-center gap-3">

@@ -48,6 +48,20 @@ export default function OutfitEditor({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [saving, setSaving] = useState(false);
+
+  // Compared against what the sheet opened with, so dismissing an untouched
+  // sheet stays instant and only real work is worth stopping for.
+  const entered = JSON.stringify([
+    name,
+    itemIds,
+    seasons,
+    formality,
+    tags,
+    notes,
+    favorite,
+  ]);
+  const [opened] = useState(entered);
+  const dirty = entered !== opened;
   const [problem, setProblem] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -123,6 +137,7 @@ export default function OutfitEditor({
     <Modal
       title={outfit ? "Edit look" : "Build a look"}
       onClose={onClose}
+      dirty={dirty}
       wide
       footer={
         <div className="flex items-center gap-3">

@@ -14,6 +14,7 @@ interface Props {
   outfits: Outfit[];
   onClose: () => void;
   onUpdate: (draft: TripDraft) => Promise<void>;
+  onEditDetails: () => void;
   onDelete: () => Promise<void>;
   onSetPacked: (itemId: string, packed: boolean) => Promise<void>;
 }
@@ -29,6 +30,7 @@ export default function TripSheet({
   outfits,
   onClose,
   onUpdate,
+  onEditDetails,
   onDelete,
   onSetPacked,
 }: Props) {
@@ -122,6 +124,9 @@ export default function TripSheet({
               className="btn-primary"
             >
               {adding ? "Done adding" : "Add to this list"}
+            </button>
+            <button type="button" onClick={onEditDetails} className="btn-ghost">
+              Edit details
             </button>
             <span className="text-xs text-muted">
               {packedCount} of {checklist.length} packed

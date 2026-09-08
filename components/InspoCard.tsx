@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HeartIcon } from "./Icons";
-import { getImageUrl } from "@/lib/db";
+import { getThumbUrl } from "@/lib/db";
 import { SEASONS } from "@/lib/taxonomy";
 import type { Inspo } from "@/lib/types";
 
@@ -27,7 +27,7 @@ export default function InspoCard({
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(shown.map((id) => getImageUrl(id))).then((resolved) => {
+    Promise.all(shown.map((id) => getThumbUrl(id))).then((resolved) => {
       if (!cancelled) setUrls(resolved);
     });
     return () => {

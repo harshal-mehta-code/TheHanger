@@ -10,11 +10,17 @@ import {
 } from "react";
 import * as db from "./db";
 import { useAuth } from "./auth";
-import { blobToDataUrl, dataUrlToBlob } from "./image";
-import { SAMPLE_CLOSET } from "./sample";
+import {
+  blobToDataUrl,
+  dataUrlToBlob,
+  thumbnailFrom,
+  type PreparedPhoto,
+} from "./image";
+import { SAMPLE_CLOSET, SAMPLE_TAG } from "./sample";
 import { getSupabase } from "./supabase";
 import {
   pushDeletion,
+  pushPhotoDeletions,
   pushInspo,
   pushItem,
   pushOutfit,
@@ -42,11 +48,11 @@ interface ClosetContextValue {
   outfits: Outfit[];
   ready: boolean;
   error: string | null;
-  addItem: (draft: ItemDraft, photo?: Blob | null) => Promise<Item>;
+  addItem: (draft: ItemDraft, photo?: PreparedPhoto | null) => Promise<Item>;
   updateItem: (
     id: string,
     draft: ItemDraft,
-    photo?: Blob | null | undefined,
+    photo?: PreparedPhoto | null | undefined,
   ) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
@@ -65,11 +71,14 @@ interface ClosetContextValue {
   removeOutfitWear: (id: string, date: string) => Promise<void>;
   inspo: Inspo[];
   /** Images are existing ids to keep, or new blobs to store, in display order. */
-  addInspo: (draft: InspoDraft, images: (string | Blob)[]) => Promise<Inspo>;
+  addInspo: (
+    draft: InspoDraft,
+    images: (string | PreparedPhoto)[],
+  ) => Promise<Inspo>;
   updateInspo: (
     id: string,
     draft: InspoDraft,
-    images: (string | Blob)[],
+    images: (string | PreparedPhoto)[],
   ) => Promise<void>;
   deleteInspo: (id: string) => Promise<void>;
   toggleInspoFavorite: (id: string) => Promise<void>;
@@ -94,6 +103,8 @@ interface ClosetContextValue {
   resetCloset: () => Promise<void>;
 
   trash: db.TrashEntry[];
+  sampleCount: number;
+  removeSample: () => Promise<number>;
   restoreFromTrash: (id: string) => Promise<void>;
   purgeTrashEntry: (id: string) => Promise<void>;
 
@@ -223,12 +234,13 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     [mirror],
   );
 
-  const addItem = useCallback(async (draft: ItemDraft, photo?: Blob | null) => {
+  const addItem = useCallback(
+    async (draft: ItemDraft, photo?: PreparedPhoto | null) => {
     const now = Date.now();
     let imageId: string | undefined;
     if (photo) {
       imageId = newId();
-      await db.writeImage(imageId, photo);
+      await db.writePhoto(imageId, photo);
     }
     const item: Item = {
       ...draft,
@@ -246,22 +258,38 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => [...prev, item]);
     mirror((sb, uid) => pushItem(sb, uid, item));
     return item;
-  }, [mirror]);
+    },
+    [mirror],
+  );
 
   const updateItem = useCallback(
-    async (id: string, draft: ItemDraft, photo?: Blob | null | undefined) => {
+    async (
+      id: string,
+      draft: ItemDraft,
+      photo?: PreparedPhoto | null | undefined,
+    ) => {
       const existing = items.find((i) => i.id === id);
       if (!existing) return;
 
       let imageId = existing.imageId;
       // `undefined` means "photo untouched"; `null` means "remove it".
+      const orphaned: string[] = [];
       if (photo === null && imageId) {
         await db.removeImage(imageId);
+        orphaned.push(imageId);
         imageId = undefined;
-      } else if (photo instanceof Blob) {
-        if (imageId) await db.removeImage(imageId);
+      } else if (photo) {
+        if (imageId) {
+          await db.removeImage(imageId);
+          orphaned.push(imageId);
+        }
         imageId = newId();
-        await db.writeImage(imageId, photo);
+        await db.writePhoto(imageId, photo);
+      }
+      // Replacing a photo mints a new id, so the old objects in the bucket
+      // become unreachable the moment the record stops naming them.
+      if (orphaned.length) {
+        mirror((sb, uid) => pushPhotoDeletions(sb, uid, orphaned));
       }
 
       const next: Item = {
@@ -478,27 +506,27 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
    * as-is, blobs are written, and anything dropped is deleted.
    */
   const resolveImages = useCallback(
-    async (images: (string | Blob)[], previous: string[]) => {
+    async (images: (string | PreparedPhoto)[], previous: string[]) => {
       const imageIds: string[] = [];
       for (const image of images) {
         if (typeof image === "string") {
           imageIds.push(image);
         } else {
           const id = newId();
-          await db.writeImage(id, image);
+          await db.writePhoto(id, image);
           imageIds.push(id);
         }
       }
-      for (const gone of previous.filter((id) => !imageIds.includes(id))) {
-        await db.removeImage(gone);
-      }
+      const gone = previous.filter((id) => !imageIds.includes(id));
+      for (const id of gone) await db.removeImage(id);
+      if (gone.length) mirror((sb, uid) => pushPhotoDeletions(sb, uid, gone));
       return imageIds;
     },
-    [],
+    [mirror],
   );
 
   const addInspo = useCallback(
-    async (draft: InspoDraft, images: (string | Blob)[]) => {
+    async (draft: InspoDraft, images: (string | PreparedPhoto)[]) => {
       const now = Date.now();
       const board: Inspo = {
         ...draft,
@@ -517,7 +545,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateInspo = useCallback(
-    async (id: string, draft: InspoDraft, images: (string | Blob)[]) => {
+    async (id: string, draft: InspoDraft, images: (string | PreparedPhoto)[]) => {
       const existing = inspo.find((x) => x.id === id);
       if (!existing) return;
       const next: Inspo = {
@@ -669,42 +697,47 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     // Everything, not just pieces and looks: a backup that quietly omits the
     // boards and the packing lists is worse than no backup, because it is
     // trusted.
-    const payload = {
-      app: "the-hanger",
-      version: 3,
-      exportedAt: new Date().toISOString(),
-      items: await Promise.all(
-        items.map(async (item) => {
-          const blob = item.imageId
-            ? await db.readImage(item.imageId)
-            : undefined;
-          return {
+    // Assembled a piece at a time rather than as one `JSON.stringify` of the
+    // whole closet. A few hundred photos base64 into something like 100 MB;
+    // building that as a single string, then copying it into a Blob, is how a
+    // backup dies on a phone. Each chunk here is small and released as soon as
+    // the Blob has it.
+    const parts: BlobPart[] = [
+      `{"app":"the-hanger","version":3,"exportedAt":${JSON.stringify(
+        new Date().toISOString(),
+      )},"items":[`,
+    ];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const blob = item.imageId ? await db.readImage(item.imageId) : undefined;
+      parts.push(
+        (i ? "," : "") +
+          JSON.stringify({
             ...item,
             imageId: undefined,
             image: blob ? await blobToDataUrl(blob) : undefined,
-          };
-        }),
-      ),
-      outfits,
-      inspo: await Promise.all(
-        inspo.map(async (board) => ({
-          ...board,
-          imageIds: undefined,
-          images: (
-            await Promise.all(
-              board.imageIds.map(async (imageId) => {
-                const blob = await db.readImage(imageId);
-                return blob ? await blobToDataUrl(blob) : null;
-              }),
-            )
-          ).filter((x): x is string => Boolean(x)),
-        })),
-      ),
-      plans,
-      trips,
-    };
+          }),
+      );
+    }
+    parts.push(`],"outfits":${JSON.stringify(outfits)},"inspo":[`);
+    for (let i = 0; i < inspo.length; i++) {
+      const board = inspo[i];
+      const images: string[] = [];
+      for (const imageId of board.imageIds) {
+        const blob = await db.readImage(imageId);
+        if (blob) images.push(await blobToDataUrl(blob));
+      }
+      parts.push(
+        (i ? "," : "") +
+          JSON.stringify({ ...board, imageIds: undefined, images }),
+      );
+    }
+    parts.push(
+      `],"plans":${JSON.stringify(plans)},"trips":${JSON.stringify(trips)}}`,
+    );
+
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+      new Blob(parts, { type: "application/json" }),
     );
     const a = document.createElement("a");
     a.href = url;
@@ -719,6 +752,13 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       URL.revokeObjectURL(url);
     }, 10_000);
   }, [items, outfits, inspo, plans, trips]);
+
+  /** Write a photo that arrived without a thumbnail, and derive one. */
+  const storeRestoredPhoto = useCallback(async (id: string, blob: Blob) => {
+    const thumb = await thumbnailFrom(blob);
+    if (thumb) await db.writePhoto(id, { full: blob, thumb });
+    else await db.writeImage(id, blob);
+  }, []);
 
   const importBackup = useCallback(async (file: File) => {
     const parsed = JSON.parse(await file.text());
@@ -736,7 +776,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       let imageId: string | undefined;
       if (typeof raw.image === "string" && raw.image.startsWith("data:")) {
         imageId = newId();
-        await db.writeImage(imageId, await dataUrlToBlob(raw.image));
+        await storeRestoredPhoto(imageId, await dataUrlToBlob(raw.image));
       }
       const item: Item = {
         id: newId(),
@@ -822,7 +862,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       for (const image of Array.isArray(raw.images) ? raw.images : []) {
         if (typeof image !== "string" || !image.startsWith("data:")) continue;
         const imageId = newId();
-        await db.writeImage(imageId, await dataUrlToBlob(image));
+        await storeRestoredPhoto(imageId, await dataUrlToBlob(image));
         imageIds.push(imageId);
       }
       const board: Inspo = {
@@ -892,7 +932,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     if (restoredPlans.length) setPlans((prev) => [...prev, ...restoredPlans]);
 
     return restored.length;
-  }, [plans]);
+  }, [plans, storeRestoredPhoto]);
+
+  /** Pieces the demo closet put there, which she may want gone in one go. */
+  const sampleCount = useMemo(
+    () => items.filter((i) => i.tags.includes(SAMPLE_TAG)).length,
+    [items],
+  );
+
+  const removeSample = useCallback(async () => {
+    const doomed = items.filter((i) => i.tags.includes(SAMPLE_TAG));
+    for (const item of doomed) await deleteItem(item.id);
+    return doomed.length;
+  }, [items, deleteItem]);
 
   const seedSample = useCallback(async () => {
     const now = Date.now();
@@ -919,6 +971,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         ...draft,
         id: newId(),
         imageId,
+        tags: [...draft.tags, SAMPLE_TAG],
         favorite: draft.favorite ?? false,
         archived: draft.archived ?? false,
         wishlist: draft.wishlist ?? false,
@@ -1104,6 +1157,41 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     });
   }, [items, outfits, inspo, plans, trips, mirror]);
 
+  /**
+   * Come back into sync when the app comes back to life.
+   *
+   * An installed app on a phone can sit warm in the background for days: she
+   * edits on the laptop, picks the phone up, and without this sees yesterday's
+   * closet with no sign that it's stale — and any edit she makes there widens
+   * a real last-write-wins conflict. Reconnecting after a dead spot has the
+   * same problem, with a queue of failed background pushes behind it.
+   */
+  useEffect(() => {
+    if (!userId) return;
+    let last = Date.now();
+    const RESYNC_AFTER = 60_000;
+
+    const maybeSync = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - last < RESYNC_AFTER) return;
+      last = Date.now();
+      void syncNow();
+    };
+    const onOnline = () => {
+      last = 0;
+      maybeSync();
+    };
+
+    document.addEventListener("visibilitychange", maybeSync);
+    window.addEventListener("focus", maybeSync);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", maybeSync);
+      window.removeEventListener("focus", maybeSync);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [userId, syncNow]);
+
   const value = useMemo<ClosetContextValue>(
     () => ({
       items,
@@ -1143,6 +1231,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       deleteTrip,
       setPacked,
       trash,
+      sampleCount,
+      removeSample,
       restoreFromTrash,
       purgeTrashEntry,
       syncState,
@@ -1186,6 +1276,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       deleteTrip,
       setPacked,
       trash,
+      sampleCount,
+      removeSample,
       restoreFromTrash,
       purgeTrashEntry,
       syncState,

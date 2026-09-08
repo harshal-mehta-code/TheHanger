@@ -3,8 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import { CameraIcon, CloseIcon, PlusIcon, TrashIcon } from "./Icons";
-import { getImageUrl } from "@/lib/db";
-import { compressImage } from "@/lib/image";
+import { getThumbUrl } from "@/lib/db";
+import {
+  looksLikeImage,
+  preparePhoto,
+  UnreadablePhotoError,
+  type PreparedPhoto,
+} from "@/lib/image";
 import {
   CATEGORIES,
   COLORS,
@@ -32,7 +37,10 @@ interface Props {
   /** Locations already in use, merged with the standard set in the picker. */
   usedLocations: string[];
   onClose: () => void;
-  onSave: (draft: ItemDraft, photo: Blob | null | undefined) => Promise<void>;
+  onSave: (
+    draft: ItemDraft,
+    photo: PreparedPhoto | null | undefined,
+  ) => Promise<void>;
 }
 
 export default function ItemEditor({
@@ -64,10 +72,34 @@ export default function ItemEditor({
   const [addingLocation, setAddingLocation] = useState(false);
   const [status, setStatus] = useState<ItemStatus>(item?.status ?? "ready");
 
-  /** `undefined` = photo untouched, `null` = cleared, Blob = replaced. */
-  const [photo, setPhoto] = useState<Blob | null | undefined>(undefined);
+  /** `undefined` = photo untouched, `null` = cleared, a photo = replaced. */
+  const [photo, setPhoto] = useState<PreparedPhoto | null | undefined>(
+    undefined,
+  );
   const [preview, setPreview] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  // Compared against what the sheet opened with, so dismissing an untouched
+  // sheet stays instant and only real work is worth stopping for.
+  const entered = JSON.stringify([
+    name,
+    category,
+    subtype,
+    brand,
+    color,
+    size,
+    seasons,
+    formality,
+    tags,
+    notes,
+    purchasedOn,
+    price,
+    favorite,
+    location,
+    status,
+  ]);
+  const [opened] = useState(entered);
+  const dirty = entered !== opened || photo !== undefined;
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -78,7 +110,7 @@ export default function ItemEditor({
   useEffect(() => {
     if (!item?.imageId) return;
     let cancelled = false;
-    getImageUrl(item.imageId).then((url) => {
+    getThumbUrl(item.imageId).then((url) => {
       if (!cancelled) setPreview(url);
     });
     return () => {
@@ -89,7 +121,7 @@ export default function ItemEditor({
   // Release preview URLs we minted for freshly picked files.
   useEffect(() => {
     return () => {
-      if (preview?.startsWith("blob:") && photo instanceof Blob) {
+      if (preview?.startsWith("blob:") && photo) {
         URL.revokeObjectURL(preview);
       }
     };
@@ -101,18 +133,24 @@ export default function ItemEditor({
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!looksLikeImage(file)) {
       setProblem("That file isn't an image.");
       return;
     }
     setProcessing(true);
     setProblem(null);
     try {
-      const compressed = await compressImage(file);
-      setPhoto(compressed);
-      setPreview(URL.createObjectURL(compressed));
-    } catch {
-      setProblem("Couldn't read that photo. Try another one.");
+      const prepared = await preparePhoto(file);
+      setPhoto(prepared);
+      // The thumbnail is what the preview box is sized for, and it decodes in
+      // a fraction of the memory of the full copy.
+      setPreview(URL.createObjectURL(prepared.thumb));
+    } catch (err) {
+      setProblem(
+        err instanceof UnreadablePhotoError
+          ? err.message
+          : "Couldn't read that photo. Try another one.",
+      );
     } finally {
       setProcessing(false);
     }
@@ -177,6 +215,7 @@ export default function ItemEditor({
     <Modal
       title={item ? "Edit piece" : "Add a piece"}
       onClose={onClose}
+      dirty={dirty}
       wide
       footer={
         <div className="flex items-center justify-end gap-2">

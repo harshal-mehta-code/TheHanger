@@ -36,9 +36,20 @@ searchable.
 
 **Inventory** — Add a piece with a photo (camera or upload, drag-and-drop on
 desktop), a name, category, colour, brand, size, seasons, dress code, tags,
-purchase date and price. Photos are downscaled to 1400px and re-encoded before
-they're stored, so a few hundred pieces stay comfortably within the browser's
-storage budget.
+purchase date and price.
+
+Each photo is decoded once and kept at two sizes: a 1400px copy for the detail
+sheet and a 512px thumbnail, both re-encoded as WebP where the browser can (a
+third smaller than JPEG at the same quality). The grid only ever renders the
+thumbnail, which is what keeps a closet of several hundred pieces scrolling on
+a phone — a full-size photo costs about twenty times the decoded memory, and
+thirty of those on screen is how a tab gets killed. Both sizes sync, so a
+second device gets a usable closet without pulling full photos first.
+
+A photo the browser can't decode is refused with a reason rather than stored
+as-is. That is aimed squarely at iPhone HEIC files: Safari reads them and they
+are re-encoded on the way in, but a laptop browser can't, and silently keeping
+one would leave a hole in the grid on every other device.
 
 **Filter** — One sheet holds category, season, colour, brand, tag, dress code,
 favourites, order, laundry status, and the ones that matter most for a real closet: *never worn*
@@ -96,6 +107,10 @@ record, its photo, its wear history and the looks it belonged to, and un-deletes
 it in the cloud too. A delete arriving from another device lands in that
 device's trash as well, so the machine where the tap happened isn't the only way
 back. Curating a wardrobe is hours of work, so a mis-tap is never final.
+
+**Sample closet** — Twelve demo pieces to explore with, tagged as samples so
+*Remove sample pieces* in the settings menu takes them all out again in one
+go rather than twelve deletes across every device.
 
 **Backup** — Export everything — pieces, photos, outfits, wear history,
 inspiration boards, the calendar and packing lists — as a single JSON file;
@@ -174,7 +189,11 @@ name and doesn't stop the other four.
 Local writes go to IndexedDB first and are mirrored to the cloud in the
 background, so the app stays fast and keeps working with no signal; the next
 sync carries anything that didn't make it. A full reconcile runs on sign-in, on
-load while signed in, and from *Sync now*.
+load while signed in, when the app comes back to the foreground or the network
+returns, and from *Sync now*. Photos transfer six at a time and always move
+before the records that name them, so a piece never appears on a device that
+can't yet show its picture. Replacing a photo mints a new id and deletes the
+old objects from the bucket, so re-shooting a piece doesn't leak storage.
 
 ### Is the anon key safe in the browser?
 

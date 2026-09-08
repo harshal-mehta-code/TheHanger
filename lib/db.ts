@@ -188,9 +188,15 @@ export async function removeItem(id: string): Promise<void> {
   const item = await db.get("items", id);
   const tx = db.transaction(["items", "images"], "readwrite");
   await tx.objectStore("items").delete(id);
-  if (item?.imageId) await tx.objectStore("images").delete(item.imageId);
+  if (item?.imageId) {
+    await tx.objectStore("images").delete(item.imageId);
+    await tx.objectStore("images").delete(thumbKey(item.imageId));
+  }
   await tx.done;
-  if (item?.imageId) revokeImageUrl(item.imageId);
+  if (item?.imageId) {
+    revokeImageUrl(item.imageId);
+    revokeImageUrl(thumbKey(item.imageId));
+  }
 }
 
 export async function readAllOutfits(): Promise<Outfit[]> {
@@ -328,13 +334,11 @@ export async function purgeTrashEntry(id: string): Promise<void> {
   const entry = await db.get("trash", id);
   if (!entry) return;
   if (entry.kind === "item" && entry.record.imageId) {
-    await db.delete("images", entry.record.imageId);
-    revokeImageUrl(entry.record.imageId);
+    await removeImage(entry.record.imageId);
   }
   if (entry.kind === "inspo") {
     for (const imageId of entry.record.imageIds) {
-      await db.delete("images", imageId);
-      revokeImageUrl(imageId);
+      await removeImage(imageId);
     }
   }
   await db.delete("trash", id);
@@ -383,9 +387,30 @@ export async function clearDeletions(ids: string[]): Promise<void> {
   await tx.done;
 }
 
+/**
+ * The key a photo's grid-sized copy is stored under, locally and in the
+ * bucket. Underscore rather than anything more exotic: Supabase Storage
+ * rejects object keys outside a narrow character set.
+ */
+export function thumbKey(id: string): string {
+  return `${id}_thumb`;
+}
+
 export async function writeImage(id: string, blob: Blob): Promise<void> {
   const db = await getDB();
   await db.put("images", blob, id);
+}
+
+/** Store a photo and the thumbnail the grid renders, together. */
+export async function writePhoto(
+  id: string,
+  photo: { full: Blob; thumb: Blob },
+): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction("images", "readwrite");
+  await tx.store.put(photo.full, id);
+  await tx.store.put(photo.thumb, thumbKey(id));
+  await tx.done;
 }
 
 export async function readImage(id: string): Promise<Blob | undefined> {
@@ -395,8 +420,12 @@ export async function readImage(id: string): Promise<Blob | undefined> {
 
 export async function removeImage(id: string): Promise<void> {
   const db = await getDB();
-  await db.delete("images", id);
+  const tx = db.transaction("images", "readwrite");
+  await tx.store.delete(id);
+  await tx.store.delete(thumbKey(id));
+  await tx.done;
   revokeImageUrl(id);
+  revokeImageUrl(thumbKey(id));
 }
 
 export async function clearEverything(): Promise<void> {
@@ -451,6 +480,14 @@ export function getImageUrl(id: string): Promise<string | null> {
 
   pendingUrls.set(id, promise);
   return promise;
+}
+
+/**
+ * Resolve the grid-sized copy of a photo, falling back to the full one for
+ * anything stored before thumbnails existed.
+ */
+export async function getThumbUrl(id: string): Promise<string | null> {
+  return (await getImageUrl(thumbKey(id))) ?? (await getImageUrl(id));
 }
 
 export function revokeImageUrl(id: string) {

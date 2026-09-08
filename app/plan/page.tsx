@@ -59,6 +59,7 @@ export default function PlanPage() {
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [openTripId, setOpenTripId] = useState<string | null>(null);
   const [newTripOpen, setNewTripOpen] = useState(false);
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,6 +114,9 @@ export default function PlanPage() {
 
   const openTrip = openTripId
     ? trips.find((t) => t.id === openTripId) ?? null
+    : null;
+  const editingTrip = editingTripId
+    ? trips.find((t) => t.id === editingTripId) ?? null
     : null;
 
   return (
@@ -350,6 +354,7 @@ export default function PlanPage() {
 
       {openTrip && (
         <TripSheet
+          onEditDetails={() => setEditingTripId(openTrip.id)}
           trip={openTrip}
           items={items}
           outfits={outfits}
@@ -367,8 +372,19 @@ export default function PlanPage() {
         />
       )}
 
+      {editingTrip && (
+        <TripDetailsSheet
+          trip={editingTrip}
+          onClose={() => setEditingTripId(null)}
+          onCreate={async (draft) => {
+            await updateTrip(editingTrip.id, draft);
+            setEditingTripId(null);
+          }}
+        />
+      )}
+
       {newTripOpen && (
-        <NewTripSheet
+        <TripDetailsSheet
           onClose={() => setNewTripOpen(false)}
           onCreate={async (draft) => {
             const trip = await addTrip(draft);
@@ -393,24 +409,30 @@ export default function PlanPage() {
   );
 }
 
-function NewTripSheet({
+/**
+ * Creates a list, and edits one. The details were previously write-once, so a
+ * typo in a trip name outlived the trip.
+ */
+function TripDetailsSheet({
+  trip,
   onClose,
   onCreate,
 }: {
+  trip?: Trip;
   onClose: () => void;
   onCreate: (draft: Omit<Trip, "id" | "createdAt" | "updatedAt" | "packed">) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [destination, setDestination] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [name, setName] = useState(trip?.name ?? "");
+  const [destination, setDestination] = useState(trip?.destination ?? "");
+  const [startDate, setStartDate] = useState(trip?.startDate ?? "");
+  const [endDate, setEndDate] = useState(trip?.endDate ?? "");
+  const [notes, setNotes] = useState(trip?.notes ?? "");
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   return (
     <Modal
-      title="New packing list"
+      title={trip ? "Trip details" : "New packing list"}
       onClose={onClose}
       footer={
         <div className="flex justify-end gap-2">
@@ -423,7 +445,13 @@ function NewTripSheet({
             disabled={busy}
             className="btn-primary disabled:opacity-55"
           >
-            {busy ? "Creating…" : "Create"}
+            {busy
+              ? trip
+                ? "Saving…"
+                : "Creating…"
+              : trip
+                ? "Save"
+                : "Create"}
           </button>
         </div>
       }
@@ -438,15 +466,21 @@ function NewTripSheet({
             return;
           }
           setBusy(true);
-          await onCreate({
-            name: name.trim(),
-            destination: destination.trim() || undefined,
-            startDate: startDate || undefined,
-            endDate: endDate || undefined,
-            notes: notes.trim() || undefined,
-            outfitIds: [],
-            itemIds: [],
-          });
+          try {
+            await onCreate({
+              name: name.trim(),
+              destination: destination.trim() || undefined,
+              startDate: startDate || undefined,
+              endDate: endDate || undefined,
+              notes: notes.trim() || undefined,
+              // Editing details must not disturb what has been packed.
+              outfitIds: trip?.outfitIds ?? [],
+              itemIds: trip?.itemIds ?? [],
+            });
+          } catch {
+            setBusy(false);
+            setProblem("Couldn't save that. Try again.");
+          }
         }}
       >
         <div>
@@ -455,7 +489,7 @@ function NewTripSheet({
           </label>
           <input
             id="trip-name"
-            autoFocus
+            autoFocus={!trip}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Amalfi, June"

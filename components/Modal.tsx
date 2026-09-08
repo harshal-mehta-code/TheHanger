@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CloseIcon } from "./Icons";
 
@@ -12,6 +12,13 @@ interface Props {
   children: React.ReactNode;
   footer?: React.ReactNode;
   wide?: boolean;
+  /**
+   * Set while the sheet holds unsaved work. Closing by backdrop or Escape then
+   * asks first — on a phone the backdrop is the strip of screen just above the
+   * sheet, which is an easy place to catch with a thumb, and a filled-in
+   * editor or a processed batch of photos is not something to lose to that.
+   */
+  dirty?: boolean;
 }
 
 export default function Modal({
@@ -21,12 +28,21 @@ export default function Modal({
   children,
   footer,
   wide,
+  dirty,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  // The close button is an explicit "I'm done here" and closes outright; only
+  // the incidental ways out stop to ask.
+  const requestClose = useCallback(() => {
+    if (dirty) setConfirming(true);
+    else onClose();
+  }, [dirty, onClose]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
     };
     document.addEventListener("keydown", onKey);
 
@@ -40,7 +56,7 @@ export default function Modal({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   // Rendered through the body, not in place. An ancestor with backdrop-filter
   // (the sticky header, for one) becomes the containing block for fixed
@@ -57,7 +73,7 @@ export default function Modal({
     >
       <div
         className="animate-fade absolute inset-0 bg-ink/45 backdrop-blur-[3px]"
-        onClick={onClose}
+        onClick={requestClose}
       />
 
       <div
@@ -99,10 +115,34 @@ export default function Modal({
           {children}
         </div>
 
-        {footer && (
+        {confirming ? (
           <footer className="shrink-0 border-t border-line bg-shell px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
-            {footer}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-medium">Discard what you&apos;ve entered?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  className="btn-ghost"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn-primary bg-berry-deep hover:bg-berry"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
           </footer>
+        ) : (
+          footer && (
+            <footer className="shrink-0 border-t border-line bg-shell px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+              {footer}
+            </footer>
+          )
         )}
       </div>
     </div>,

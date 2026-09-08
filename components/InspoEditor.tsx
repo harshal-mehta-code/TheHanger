@@ -4,8 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
 import ItemPhoto from "./ItemPhoto";
 import { CameraIcon, CheckIcon, CloseIcon, PlusIcon, SearchIcon } from "./Icons";
-import { getImageUrl } from "@/lib/db";
-import { compressImage } from "@/lib/image";
+import { getThumbUrl } from "@/lib/db";
+import {
+  looksLikeImage,
+  preparePhoto,
+  UnreadablePhotoError,
+  type PreparedPhoto,
+} from "@/lib/image";
 import { CATEGORIES, SEASONS, TAG_SUGGESTIONS } from "@/lib/taxonomy";
 import type { Inspo, InspoDraft, Item, Season } from "@/lib/types";
 
@@ -14,11 +19,18 @@ interface Props {
   items: Item[];
   knownTags: string[];
   onClose: () => void;
-  onSave: (draft: InspoDraft, images: (string | Blob)[]) => Promise<void>;
+  onSave: (
+    draft: InspoDraft,
+    images: (string | PreparedPhoto)[],
+  ) => Promise<void>;
 }
 
 /** An existing stored image, or one just picked and not yet written. */
-type Slot = { key: string; ref: string | Blob; preview: string | null };
+type Slot = {
+  key: string;
+  ref: string | PreparedPhoto;
+  preview: string | null;
+};
 
 export default function InspoEditor({
   inspo,
@@ -35,6 +47,19 @@ export default function InspoEditor({
   const [tagInput, setTagInput] = useState("");
   const [itemIds, setItemIds] = useState<string[]>(inspo?.itemIds ?? []);
   const [favorite, setFavorite] = useState(inspo?.favorite ?? false);
+
+  // Compared against what the sheet opened with, so dismissing an untouched
+  // sheet stays instant and only real work is worth stopping for.
+  const entered = JSON.stringify([
+    title,
+    note,
+    sourceUrl,
+    seasons,
+    tags,
+    itemIds,
+    favorite,
+  ]);
+  const [opened] = useState(entered);
 
   const [slots, setSlots] = useState<Slot[]>(
     () =>
@@ -61,7 +86,7 @@ export default function InspoEditor({
     for (const slot of slots) {
       if (slot.preview || typeof slot.ref !== "string") continue;
       const id = slot.ref;
-      getImageUrl(id).then((url) => {
+      getThumbUrl(id).then((url) => {
         if (cancelled || !url) return;
         setSlots((prev) =>
           prev.map((s) => (s.key === id ? { ...s, preview: url } : s)),
@@ -96,7 +121,7 @@ export default function InspoEditor({
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
-    const images = [...files].filter((f) => f.type.startsWith("image/"));
+    const images = [...files].filter(looksLikeImage);
     if (images.length === 0) {
       setProblem("None of those were images.");
       return;
@@ -105,15 +130,28 @@ export default function InspoEditor({
     setProblem(null);
     try {
       const added: Slot[] = [];
+      const skipped: string[] = [];
       for (const file of images) {
-        const blob = await compressImage(file);
-        const preview = URL.createObjectURL(blob);
+        let photo: PreparedPhoto;
+        try {
+          photo = await preparePhoto(file);
+        } catch (err) {
+          if (!(err instanceof UnreadablePhotoError)) throw err;
+          skipped.push(file.name);
+          continue;
+        }
+        const preview = URL.createObjectURL(photo.thumb);
         objectUrls.current.push(preview);
         added.push({
           key: `new-${Math.random().toString(36).slice(2)}`,
-          ref: blob,
+          ref: photo,
           preview,
         });
+      }
+      if (skipped.length) {
+        setProblem(
+          `Couldn't read ${skipped.length} of those — iPhone HEIC photos need to be added from the phone, or exported as JPEG.`,
+        );
       }
       setSlots((prev) => [...prev, ...added]);
     } catch {
@@ -172,6 +210,7 @@ export default function InspoEditor({
     <Modal
       title={inspo ? "Edit inspo" : "New inspo"}
       onClose={onClose}
+      dirty={entered !== opened || slots.some((s) => typeof s.ref !== "string")}
       wide
       footer={
         <div className="flex items-center gap-3">

@@ -235,13 +235,13 @@ export default function ClosetPage() {
       {editing?.mode === "quick" && (
         <QuickAdd
           onClose={() => setEditing(null)}
-          onSave={async (entries) => {
-            for (const { draft, photo } of entries) {
-              await addItem(draft, photo);
+          onSaveEntry={async (draft, photo) => {
+            await addItem(draft, photo);
+          }}
+          onDone={(saved) => {
+            if (saved) {
+              flash(`Added ${saved} ${saved === 1 ? "piece" : "pieces"}.`);
             }
-            flash(
-              `Added ${entries.length} ${entries.length === 1 ? "piece" : "pieces"}.`,
-            );
           }}
         />
       )}
