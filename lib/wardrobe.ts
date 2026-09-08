@@ -70,7 +70,7 @@ function matchesSearch(item: Item, query: string): boolean {
 
 export function filterItems(items: Item[], filters: Filters): Item[] {
   return items.filter((item) => {
-    if (item.wishlist !== (filters.scope === "wishlist")) return false;
+    if (item.wishlist) return false;
     if (filters.statuses.length && !filters.statuses.includes(item.status))
       return false;
     if (

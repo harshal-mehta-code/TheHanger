@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as db from "./db";
 import { PHOTO_BUCKET, photoPath } from "./supabase";
-import type { Item, Outfit } from "./types";
+import type { Inspo, Item, Outfit } from "./types";
 
 /**
  * Sync model: the browser stays the source of truth for reading, and the cloud
@@ -110,6 +110,40 @@ function rowToOutfit(row: Row): Outfit {
     notes: (row.notes as string) ?? undefined,
     favorite: Boolean(row.favorite),
     wears: Array.isArray(row.wears) ? (row.wears as Outfit["wears"]) : [],
+    createdAt: new Date(String(row.created_at)).getTime(),
+    updatedAt: new Date(String(row.updated_at)).getTime(),
+  };
+}
+
+function inspoToRow(inspo: Inspo, userId: string): Row {
+  return {
+    id: inspo.id,
+    user_id: userId,
+    title: inspo.title,
+    note: inspo.note ?? null,
+    source_url: inspo.sourceUrl ?? null,
+    image_ids: inspo.imageIds,
+    item_ids: inspo.itemIds,
+    tags: inspo.tags,
+    seasons: inspo.seasons,
+    favorite: inspo.favorite,
+    created_at: new Date(inspo.createdAt).toISOString(),
+    updated_at: new Date(inspo.updatedAt).toISOString(),
+    deleted_at: null,
+  };
+}
+
+function rowToInspo(row: Row): Inspo {
+  return {
+    id: String(row.id),
+    title: String(row.title ?? "Untitled"),
+    note: (row.note as string) ?? undefined,
+    sourceUrl: (row.source_url as string) ?? undefined,
+    imageIds: (row.image_ids as string[]) ?? [],
+    itemIds: (row.item_ids as string[]) ?? [],
+    tags: (row.tags as string[]) ?? [],
+    seasons: (row.seasons as Inspo["seasons"]) ?? [],
+    favorite: Boolean(row.favorite),
     createdAt: new Date(String(row.created_at)).getTime(),
     updatedAt: new Date(String(row.updated_at)).getTime(),
   };
@@ -240,6 +274,57 @@ export async function syncAll(
     pushed += toUpsert.length;
   }
 
+  /* --- inspo --- */
+  const localInspo = await db.readAllInspo();
+  const { data: inspoRows, error: inspoErr } = await supabase
+    .from("inspo")
+    .select("*")
+    .eq("user_id", userId);
+  if (inspoErr) throw inspoErr;
+
+  const remoteInspo = new Map<string, Row>(
+    (inspoRows ?? []).map((r: Row) => [String(r.id), r]),
+  );
+  const localInspoById = new Map(localInspo.map((x) => [x.id, x]));
+
+  const inspoUpserts: Row[] = [];
+  for (const board of localInspo) {
+    const remote = remoteInspo.get(board.id);
+    if (remote?.deleted_at) {
+      await db.removeInspo(board.id);
+      continue;
+    }
+    const remoteUpdated = remote
+      ? new Date(String(remote.updated_at)).getTime()
+      : -1;
+    if (board.updatedAt > remoteUpdated) {
+      inspoUpserts.push(inspoToRow(board, userId));
+      for (const imageId of board.imageIds) {
+        await pushPhoto(supabase, userId, imageId);
+      }
+    }
+  }
+
+  for (const [id, row] of remoteInspo) {
+    if (row.deleted_at) continue;
+    const local = localInspoById.get(id);
+    const remoteUpdated = new Date(String(row.updated_at)).getTime();
+    if (!local || remoteUpdated > local.updatedAt) {
+      const board = rowToInspo(row);
+      for (const imageId of board.imageIds) {
+        await pullPhoto(supabase, userId, imageId);
+      }
+      await db.writeInspo(board);
+      pulled++;
+    }
+  }
+
+  if (inspoUpserts.length) {
+    const { error } = await supabase.from("inspo").upsert(inspoUpserts);
+    if (error) throw error;
+    pushed += inspoUpserts.length;
+  }
+
   /* --- outfits --- */
   const { data: outfitRows, error: outfitErr } = await supabase
     .from("outfits")
@@ -309,18 +394,36 @@ export async function pushOutfit(
   if (error) throw error;
 }
 
+export async function pushInspo(
+  supabase: SupabaseClient,
+  userId: string,
+  inspo: Inspo,
+) {
+  for (const imageId of inspo.imageIds) {
+    await pushPhoto(supabase, userId, imageId);
+  }
+  const { error } = await supabase
+    .from("inspo")
+    .upsert(inspoToRow(inspo, userId));
+  if (error) throw error;
+}
+
+const TABLE = { item: "items", outfit: "outfits", inspo: "inspo" } as const;
+
 export async function pushDeletion(
   supabase: SupabaseClient,
   userId: string,
-  kind: "item" | "outfit",
+  kind: "item" | "outfit" | "inspo",
   id: string,
-  imageId?: string,
+  imageIds: string[] = [],
 ) {
   const { error } = await supabase
-    .from(kind === "item" ? "items" : "outfits")
+    .from(TABLE[kind])
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", userId);
   if (error) throw error;
-  if (imageId) await deletePhoto(supabase, userId, imageId);
+  for (const imageId of imageIds) {
+    await deletePhoto(supabase, userId, imageId);
+  }
 }

@@ -20,6 +20,7 @@ interface Props {
 const TABS = [
   { href: "/", label: "Closet" },
   { href: "/outfits", label: "Outfits" },
+  { href: "/inspo", label: "Inspo" },
   { href: "/insights", label: "Insights" },
 ];
 

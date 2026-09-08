@@ -47,7 +47,10 @@ export interface Item {
   favorite: boolean;
   /** Marked for donating / selling. */
   archived: boolean;
-  /** Wanted but not owned yet — kept out of the closet and its stats. */
+  /**
+   * Legacy: superseded by Inspo. Kept on the record so upgrading never
+   * destroys data; the v5 migration clears it and tags those pieces instead.
+   */
   wishlist: boolean;
   status: ItemStatus;
   /** Key into the `images` object store; absent when no photo yet. */
@@ -71,6 +74,34 @@ export interface Outfit {
   createdAt: number;
   updatedAt: number;
 }
+
+/**
+ * A saved look or vibe. Unlike an Outfit — which is built from pieces she owns
+ * — an Inspo is reference material: screenshots from Pinterest, a colour story,
+ * a whole look she wants to remember. It can optionally point at pieces she
+ * already owns that fit the vibe.
+ */
+export interface Inspo {
+  id: string;
+  title: string;
+  note?: string;
+  /** Where it came from, so she can get back to the original. */
+  sourceUrl?: string;
+  /** Several images per board — a look is rarely one picture. */
+  imageIds: string[];
+  /** Pieces from the closet that go with this vibe. */
+  itemIds: string[];
+  tags: string[];
+  seasons: Season[];
+  favorite: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type InspoDraft = Omit<
+  Inspo,
+  "id" | "createdAt" | "updatedAt" | "favorite" | "imageIds"
+> & { favorite?: boolean };
 
 export type OutfitDraft = Omit<
   Outfit,
@@ -105,8 +136,6 @@ export type SortKey =
 
 export interface Filters {
   search: string;
-  /** The closet proper, or the list of pieces wanted but not owned. */
-  scope: "closet" | "wishlist";
   statuses: ItemStatus[];
   locations: string[];
   categories: CategoryId[];
@@ -126,7 +155,6 @@ export interface Filters {
 
 export const EMPTY_FILTERS: Filters = {
   search: "",
-  scope: "closet",
   statuses: [],
   locations: [],
   categories: [],

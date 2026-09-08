@@ -21,7 +21,6 @@ export default function InsightsPage() {
     ready,
     toggleFavorite,
     toggleArchived,
-    toggleWishlist,
     setStatus,
     logWear,
     removeWear,
@@ -353,7 +352,6 @@ export default function InsightsPage() {
           }}
           onToggleFavorite={() => void toggleFavorite(openItem.id)}
           onToggleArchived={() => void toggleArchived(openItem.id)}
-          onToggleWishlist={() => void toggleWishlist(openItem.id)}
           onSetStatus={(status) => void setStatus(openItem.id, status)}
           onLogWear={(date) => void logWear(openItem.id, date)}
           onRemoveWear={(date) => void removeWear(openItem.id, date)}

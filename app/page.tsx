@@ -37,7 +37,6 @@ export default function ClosetPage() {
     deleteItem,
     toggleFavorite,
     toggleArchived,
-    toggleWishlist,
     setStatus,
     logWear,
     removeWear,
@@ -113,12 +112,9 @@ export default function ClosetPage() {
         search={{
           value: filters.search,
           onChange: (v) => setFilters((f) => ({ ...f, search: v })),
-          placeholder:
-            filters.scope === "wishlist"
-              ? "Search your wishlist…"
-              : "Search your closet…",
+          placeholder: "Search your closet…",
         }}
-        addLabel={filters.scope === "wishlist" ? "Add a wish" : "Add piece"}
+        addLabel="Add piece"
         onAdd={() => setEditing({ mode: "new" })}
         subtitle={
           hasCloset
@@ -175,7 +171,6 @@ export default function ClosetPage() {
             onChange={setFilters}
             facets={facets}
             resultCount={visible.length}
-            wishlistCount={stats.wishlist}
           />
 
           {visible.length === 0 ? (
@@ -204,7 +199,6 @@ export default function ClosetPage() {
       {/* ---------------- overlays ---------------- */}
       {editing?.mode === "new" && (
         <ItemEditor
-          defaultWishlist={filters.scope === "wishlist"}
           knownBrands={facets.brands}
           knownTags={facets.tags}
           usedLocations={facets.locations}
@@ -235,10 +229,7 @@ export default function ClosetPage() {
           onClose={() => setEditing(null)}
           onSave={async (entries) => {
             for (const { draft, photo } of entries) {
-              await addItem(
-                { ...draft, wishlist: filters.scope === "wishlist" },
-                photo,
-              );
+              await addItem(draft, photo);
             }
             flash(
               `Added ${entries.length} ${entries.length === 1 ? "piece" : "pieces"}.`,
@@ -260,14 +251,6 @@ export default function ClosetPage() {
           }}
           onToggleFavorite={() => void toggleFavorite(openItem.id)}
           onToggleArchived={() => void toggleArchived(openItem.id)}
-          onToggleWishlist={() => {
-            void toggleWishlist(openItem.id);
-            flash(
-              openItem.wishlist
-                ? `“${openItem.name}” moved into your closet.`
-                : `“${openItem.name}” moved to your wishlist.`,
-            );
-          }}
           onSetStatus={(status) => void setStatus(openItem.id, status)}
           onLogWear={(date) => void logWear(openItem.id, date)}
           onRemoveWear={(date) => void removeWear(openItem.id, date)}

@@ -9,8 +9,9 @@ Deploys to Vercel as a static front end — no database, no accounts, no server.
 
 ## What it does
 
-**Three views** — *Closet* (everything you own), *Outfits* (saved looks), and
-*Insights* (what the closet is actually doing). Sections sit in the header on a
+**Four views** — *Closet* (everything you own), *Outfits* (looks built from
+pieces you own), *Inspo* (reference material and vibes), and *Insights* (what
+the closet is actually doing). Sections sit in the header on a
 laptop and in a bottom bar on a phone.
 
 **Kept calm on purpose** — the closet screen is clothes, not controls. All
@@ -52,8 +53,12 @@ hides any look with a piece in the wash.
 or waiting to be mended. Cards show it, filters respect it, and outfits know
 when one of their pieces is unavailable.
 
-**Wishlist** — Track pieces you want but don't own. They're kept out of the
-closet grid and out of every statistic until you tap *I bought it*.
+**Inspo** — A board for whole looks and vibes: screenshots from Pinterest, a
+colour story, jewellery and shoes that go together. Several images per board,
+free-text notes, a link back to the source, seasons and tags — and you can link
+pieces you already own that fit the vibe, so it's clear what you're working
+with. This replaces the old wishlist checkbox; existing wishlist pieces are
+migrated into the closet with a `wishlist` tag so nothing is lost.
 
 **Insights** — Wear activity by month, what you own by category, best and worst
 cost per wear, the pieces working hardest, the ones waiting longest, and spend
@@ -174,6 +179,7 @@ app/
   layout.tsx        fonts, metadata, closet provider
   page.tsx          the closet: pulse, filters, grid, overlays
   outfits/page.tsx  saved looks
+  inspo/page.tsx    reference boards
   insights/page.tsx charts and leaderboards
   globals.css       design tokens and component classes
   icon.svg, apple-icon.tsx, manifest.ts
@@ -187,6 +193,9 @@ components/
   OutfitCard        collage card for a saved look
   OutfitDetail      look sheet, drills into each piece
   OutfitEditor      look builder with a piece picker
+  InspoCard         collage card for a saved board
+  InspoDetail       board sheet with a lightbox and linked pieces
+  InspoEditor       multi-image board builder
   AccountSheet      sign in / create account / sync status
   TrashSheet        recently deleted, restore or erase
   SettingsMenu      account, backup, restore, sample closet, theme, erase
@@ -194,7 +203,7 @@ components/
 lib/
   types.ts          Item, Outfit, Filters and the rest of the domain model
   taxonomy.ts       categories, seasons, colours, dress codes, statuses, tags
-  db.ts             IndexedDB (v4): records, photos, tombstones, 30-day trash
+  db.ts             IndexedDB (v5): records, photos, tombstones, 30-day trash
   supabase.ts       cloud client; null when sync isn't configured
   auth.tsx          session, sign in / up / out
   sync.ts           row mapping, last-write-wins reconcile, photo transfer

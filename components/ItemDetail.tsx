@@ -9,7 +9,6 @@ import {
   CloseIcon,
   EditIcon,
   HeartIcon,
-  SparkleIcon,
   TrashIcon,
 } from "./Icons";
 import {
@@ -29,7 +28,6 @@ interface Props {
   onDelete: () => void;
   onToggleFavorite: () => void;
   onToggleArchived: () => void;
-  onToggleWishlist: () => void;
   onSetStatus: (status: ItemStatus) => void;
   onLogWear: (date: string) => void;
   onRemoveWear: (date: string) => void;
@@ -60,7 +58,6 @@ export default function ItemDetail({
   onDelete,
   onToggleFavorite,
   onToggleArchived,
-  onToggleWishlist,
   onSetStatus,
   onLogWear,
   onRemoveWear,
@@ -104,31 +101,19 @@ export default function ItemDetail({
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            {item.wishlist ? (
-              <button
-                type="button"
-                onClick={onToggleWishlist}
-                className="btn-primary flex-1 sm:flex-none"
-              >
-                <SparkleIcon className="h-4 w-4" />
-                I bought it
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onLogWear(todayISO())}
-                disabled={wornToday}
-                className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
-              >
-                <CheckIcon className="h-4 w-4" />
-                {wornToday ? "Worn today" : "Wore it today"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => onLogWear(todayISO())}
+              disabled={wornToday}
+              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
+            >
+              <CheckIcon className="h-4 w-4" />
+              {wornToday ? "Worn today" : "Wore it today"}
+            </button>
             <button type="button" onClick={onEdit} className="btn-ghost">
               <EditIcon className="h-4 w-4" /> Edit
             </button>
-            {!item.wishlist && (
-              <button
+            <button
                 type="button"
                 onClick={onToggleArchived}
                 className="btn-ghost"
@@ -141,7 +126,6 @@ export default function ItemDetail({
                 <ArchiveIcon className="h-4 w-4" />
                 {item.archived ? "Unarchive" : "Archive"}
               </button>
-            )}
             <button
               type="button"
               onClick={() => setConfirmingDelete(true)}
@@ -192,7 +176,6 @@ export default function ItemDetail({
             </p>
           </div>
 
-          {!item.wishlist && (
           <div>
             <p className="eyebrow mb-1.5">Right now</p>
             <div className="flex flex-wrap gap-1.5">
@@ -210,25 +193,15 @@ export default function ItemDetail({
               ))}
             </div>
           </div>
-          )}
 
           <div className="flex flex-wrap gap-2">
-            {!item.wishlist && (
             <span className="rounded-full bg-bone px-3 py-1.5 text-xs font-semibold">
               Worn {item.wears.length}{" "}
               {item.wears.length === 1 ? "time" : "times"}
             </span>
-            )}
-            {!item.wishlist && (
             <span className="rounded-full bg-bone px-3 py-1.5 text-xs font-semibold">
               {formatLastWorn(item)}
             </span>
-            )}
-            {item.wishlist && (
-              <span className="rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-gold-ink">
-                On the wishlist
-              </span>
-            )}
             {cpw !== null && (
               <span
                 className="rounded-full bg-sage-soft px-3 py-1.5 text-xs font-semibold text-sage"

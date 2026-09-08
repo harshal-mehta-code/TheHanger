@@ -208,3 +208,13 @@ export function UserIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ImageIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="m4 17 4.5-4.5 3 3L15 11l5 5" />
+    </svg>
+  );
+}

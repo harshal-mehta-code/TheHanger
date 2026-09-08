@@ -43,7 +43,6 @@ export default function OutfitsPage() {
     removeOutfitWear,
     toggleFavorite,
     toggleArchived,
-    toggleWishlist,
     setStatus,
     logWear,
     removeWear,
@@ -322,7 +321,6 @@ export default function OutfitsPage() {
           }}
           onToggleFavorite={() => void toggleFavorite(openPiece.id)}
           onToggleArchived={() => void toggleArchived(openPiece.id)}
-          onToggleWishlist={() => void toggleWishlist(openPiece.id)}
           onSetStatus={(status) => void setStatus(openPiece.id, status)}
           onLogWear={(date) => void logWear(openPiece.id, date)}
           onRemoveWear={(date) => void removeWear(openPiece.id, date)}

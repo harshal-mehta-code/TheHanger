@@ -13,8 +13,10 @@ import { useAuth } from "./auth";
 import { blobToDataUrl, dataUrlToBlob } from "./image";
 import { SAMPLE_CLOSET } from "./sample";
 import { getSupabase } from "./supabase";
-import { pushDeletion, pushItem, pushOutfit, syncAll } from "./sync";
+import { pushDeletion, pushInspo, pushItem, pushOutfit, syncAll } from "./sync";
 import type {
+  Inspo,
+  InspoDraft,
   Item,
   ItemDraft,
   ItemStatus,
@@ -50,6 +52,17 @@ interface ClosetContextValue {
   /** Logs the outfit and every piece in it on the same day. */
   logOutfitWear: (id: string, date?: string) => Promise<void>;
   removeOutfitWear: (id: string, date: string) => Promise<void>;
+  inspo: Inspo[];
+  /** Images are existing ids to keep, or new blobs to store, in display order. */
+  addInspo: (draft: InspoDraft, images: (string | Blob)[]) => Promise<Inspo>;
+  updateInspo: (
+    id: string,
+    draft: InspoDraft,
+    images: (string | Blob)[],
+  ) => Promise<void>;
+  deleteInspo: (id: string) => Promise<void>;
+  toggleInspoFavorite: (id: string) => Promise<void>;
+
   exportBackup: () => Promise<void>;
   importBackup: (file: File) => Promise<number>;
   seedSample: () => Promise<number>;
@@ -82,6 +95,7 @@ function newId() {
 export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [inspo, setInspo] = useState<Inspo[]>([]);
   const [trash, setTrash] = useState<db.TrashEntry[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,11 +131,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     db.purgeExpiredTrash()
       .catch(() => 0)
-      .then(() => Promise.all([db.readAllItems(), db.readAllOutfits(), db.readTrash()]))
-      .then(([loadedItems, loadedOutfits, loadedTrash]) => {
+      .then(() =>
+        Promise.all([
+          db.readAllItems(),
+          db.readAllOutfits(),
+          db.readAllInspo(),
+          db.readTrash(),
+        ]),
+      )
+      .then(([loadedItems, loadedOutfits, loadedInspo, loadedTrash]) => {
         if (cancelled) return;
         setItems(loadedItems);
         setOutfits(loadedOutfits);
+        setInspo(loadedInspo);
         setTrash(loadedTrash);
       })
       .catch(() => {
@@ -226,7 +248,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       setItems((prev) => prev.filter((i) => i.id !== id));
       setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
-        await pushDeletion(sb, uid, "item", id, doomed?.imageId);
+        await pushDeletion(sb, uid, "item", id, doomed?.imageId ? [doomed.imageId] : []);
         await db.clearDeletions([id]);
       });
 
@@ -406,6 +428,100 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     [mutateOutfit],
   );
 
+  /* ---------------- inspo ---------------- */
+
+  /**
+   * Resolve the editor's mixed list into stored image ids: strings are kept
+   * as-is, blobs are written, and anything dropped is deleted.
+   */
+  const resolveImages = useCallback(
+    async (images: (string | Blob)[], previous: string[]) => {
+      const imageIds: string[] = [];
+      for (const image of images) {
+        if (typeof image === "string") {
+          imageIds.push(image);
+        } else {
+          const id = newId();
+          await db.writeImage(id, image);
+          imageIds.push(id);
+        }
+      }
+      for (const gone of previous.filter((id) => !imageIds.includes(id))) {
+        await db.removeImage(gone);
+      }
+      return imageIds;
+    },
+    [],
+  );
+
+  const addInspo = useCallback(
+    async (draft: InspoDraft, images: (string | Blob)[]) => {
+      const now = Date.now();
+      const board: Inspo = {
+        ...draft,
+        id: newId(),
+        imageIds: await resolveImages(images, []),
+        favorite: draft.favorite ?? false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.writeInspo(board);
+      setInspo((prev) => [...prev, board]);
+      mirror((sb, uid) => pushInspo(sb, uid, board));
+      return board;
+    },
+    [mirror, resolveImages],
+  );
+
+  const updateInspo = useCallback(
+    async (id: string, draft: InspoDraft, images: (string | Blob)[]) => {
+      const existing = inspo.find((x) => x.id === id);
+      if (!existing) return;
+      const next: Inspo = {
+        ...existing,
+        ...draft,
+        imageIds: await resolveImages(images, existing.imageIds),
+        favorite: draft.favorite ?? existing.favorite,
+        updatedAt: Date.now(),
+      };
+      await db.writeInspo(next);
+      setInspo((prev) => prev.map((x) => (x.id === id ? next : x)));
+      mirror((sb, uid) => pushInspo(sb, uid, next));
+    },
+    [inspo, mirror, resolveImages],
+  );
+
+  const deleteInspo = useCallback(
+    async (id: string) => {
+      const doomed = inspo.find((x) => x.id === id);
+      await db.recordDeletion(id, "inspo");
+      await db.trashInspo(id);
+      setInspo((prev) => prev.filter((x) => x.id !== id));
+      setTrash(await db.readTrash());
+      mirror(async (sb, uid) => {
+        await pushDeletion(sb, uid, "inspo", id, doomed?.imageIds ?? []);
+        await db.clearDeletions([id]);
+      });
+    },
+    [inspo, mirror],
+  );
+
+  const toggleInspoFavorite = useCallback(
+    async (id: string) => {
+      const existing = inspo.find((x) => x.id === id);
+      if (!existing) return;
+      const next = {
+        ...existing,
+        favorite: !existing.favorite,
+        updatedAt: Date.now(),
+      };
+      await db.writeInspo(next);
+      setInspo((prev) => prev.map((x) => (x.id === id ? next : x)));
+      mirror((sb, uid) => pushInspo(sb, uid, next));
+    },
+    [inspo, mirror],
+  );
+
   /* ---------------- backup ---------------- */
 
   const exportBackup = useCallback(async () => {
@@ -581,11 +697,16 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         await db.writeItem(revived);
         setItems((prev) => [...prev.filter((i) => i.id !== id), revived]);
         mirror((sb, uid) => pushItem(sb, uid, revived));
-      } else {
+      } else if (entry.kind === "outfit") {
         const revived = { ...entry.record, updatedAt: Date.now() };
         await db.writeOutfit(revived);
         setOutfits((prev) => [...prev.filter((o) => o.id !== id), revived]);
         mirror((sb, uid) => pushOutfit(sb, uid, revived));
+      } else {
+        const revived = { ...entry.record, updatedAt: Date.now() };
+        await db.writeInspo(revived);
+        setInspo((prev) => [...prev.filter((x) => x.id !== id), revived]);
+        mirror((sb, uid) => pushInspo(sb, uid, revived));
       }
       setTrash(await db.readTrash());
     },
@@ -606,12 +727,14 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await syncAll(supabase, userId);
       // Local stores are the render source, so re-read after a merge.
-      const [freshItems, freshOutfits] = await Promise.all([
+      const [freshItems, freshOutfits, freshInspo] = await Promise.all([
         db.readAllItems(),
         db.readAllOutfits(),
+        db.readAllInspo(),
       ]);
       setItems(freshItems);
       setOutfits(freshOutfits);
+      setInspo(freshInspo);
       setSyncState({
         status: "idle",
         lastSyncedAt: Date.now(),
@@ -652,11 +775,12 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     await db.clearEverything();
     setItems([]);
     setOutfits([]);
+    setInspo([]);
     setTrash([]);
 
     mirror(async (sb, uid) => {
       for (const { id, imageId } of doomedItems) {
-        await pushDeletion(sb, uid, "item", id, imageId);
+        await pushDeletion(sb, uid, "item", id, imageId ? [imageId] : []);
       }
       for (const id of doomedOutfits) {
         await pushDeletion(sb, uid, "outfit", id);
@@ -689,6 +813,11 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      inspo,
+      addInspo,
+      updateInspo,
+      deleteInspo,
+      toggleInspoFavorite,
       trash,
       restoreFromTrash,
       purgeTrashEntry,
@@ -719,6 +848,11 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      inspo,
+      addInspo,
+      updateInspo,
+      deleteInspo,
+      toggleInspoFavorite,
       trash,
       restoreFromTrash,
       purgeTrashEntry,

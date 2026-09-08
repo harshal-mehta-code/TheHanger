@@ -4,8 +4,15 @@ import { useState } from "react";
 import Modal from "./Modal";
 import ItemPhoto from "./ItemPhoto";
 import { TrashIcon } from "./Icons";
-import { TRASH_DAYS } from "@/lib/db";
+import { TRASH_DAYS, type TrashEntry } from "@/lib/db";
 import { useCloset } from "@/lib/store";
+
+/** Pieces and looks have a `name`; an inspo board has a `title`. */
+function labelOf(entry: TrashEntry) {
+  return entry.kind === "inspo" ? entry.record.title : entry.record.name;
+}
+
+const KIND_LABEL = { item: "Piece", outfit: "Look", inspo: "Inspo" } as const;
 
 function daysLeft(deletedAt: number) {
   const gone = Math.floor((Date.now() - deletedAt) / 86_400_000);
@@ -46,18 +53,18 @@ export default function TrashSheet({ onClose }: { onClose: () => void }) {
                     />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-lg">
-                      ✨
+                      {entry.kind === "inspo" ? "🖼️" : "✨"}
                     </span>
                   )}
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
-                    {entry.record.name}
+                    {labelOf(entry)}
                   </span>
                   <span className="block text-xs text-muted">
-                    {entry.kind === "item" ? "Piece" : "Look"} ·{" "}
-                    {daysLeft(entry.deletedAt)} days left
+                    {KIND_LABEL[entry.kind]} · {daysLeft(entry.deletedAt)} days
+                    left
                   </span>
                 </span>
 
@@ -93,7 +100,7 @@ export default function TrashSheet({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       onClick={() => setConfirming(entry.id)}
-                      aria-label={`Erase ${entry.record.name} permanently`}
+                      aria-label={`Erase ${labelOf(entry)} permanently`}
                       className="rounded-full px-2 py-1.5 text-muted transition-colors hover:text-berry"
                     >
                       <TrashIcon className="h-4 w-4" />

@@ -20,7 +20,6 @@ interface Props {
   onChange: (next: Filters) => void;
   facets: { brands: string[]; tags: string[]; locations: string[] };
   resultCount: number;
-  wishlistCount: number;
 }
 
 const SORTS: { id: SortKey; label: string }[] = [
@@ -61,7 +60,6 @@ export default function FilterBar({
   onChange,
   facets,
   resultCount,
-  wishlistCount,
 }: Props) {
   const [open, setOpen] = useState(false);
   const count = activeCount(filters);
@@ -87,7 +85,6 @@ export default function FilterBar({
   function clearAll() {
     onChange({
       ...EMPTY_FILTERS,
-      scope: filters.scope,
       search: filters.search,
       sort: filters.sort,
     });
@@ -162,37 +159,6 @@ export default function FilterBar({
           }
         >
           <div className="space-y-5 p-5">
-            <div>
-              <p className="eyebrow mb-2">Showing</p>
-              <div className="flex gap-1.5">
-                {(
-                  [
-                    ["closet", "Closet"],
-                    [
-                      "wishlist",
-                      `Wishlist${wishlistCount ? ` · ${wishlistCount}` : ""}`,
-                    ],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() =>
-                      onChange({
-                        ...EMPTY_FILTERS,
-                        scope: id,
-                        search: filters.search,
-                      })
-                    }
-                    data-active={filters.scope === id}
-                    className="chip"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div>
               <label className="label" htmlFor="sort">
                 Order

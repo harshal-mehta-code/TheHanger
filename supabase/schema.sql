@@ -76,10 +76,37 @@ create table if not exists public.outfits (
 create index if not exists outfits_user_updated_idx
   on public.outfits (user_id, updated_at desc);
 
+-- ---------------------------------------------------------------- inspo
+
+-- Reference material: saved looks, colour stories, screenshots from elsewhere.
+-- Unlike an outfit it isn't built from owned pieces, though it can point at
+-- some.
+create table if not exists public.inspo (
+  id         uuid primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+
+  title      text not null,
+  note       text,
+  source_url text,
+  image_ids  text[] not null default '{}',
+  item_ids   uuid[] not null default '{}',
+  tags       text[] not null default '{}',
+  seasons    text[] not null default '{}',
+  favorite   boolean not null default false,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create index if not exists inspo_user_updated_idx
+  on public.inspo (user_id, updated_at desc);
+
 -- ---------------------------------------------------------------- policies
 
 alter table public.items   enable row level security;
 alter table public.outfits enable row level security;
+alter table public.inspo   enable row level security;
 
 do $$
 begin
@@ -110,6 +137,19 @@ begin
   end if;
   if not exists (select 1 from pg_policies where tablename = 'outfits' and policyname = 'outfits_delete_own') then
     create policy outfits_delete_own on public.outfits for delete using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename = 'inspo' and policyname = 'inspo_select_own') then
+    create policy inspo_select_own on public.inspo for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'inspo' and policyname = 'inspo_insert_own') then
+    create policy inspo_insert_own on public.inspo for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'inspo' and policyname = 'inspo_update_own') then
+    create policy inspo_update_own on public.inspo for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'inspo' and policyname = 'inspo_delete_own') then
+    create policy inspo_delete_own on public.inspo for delete using (auth.uid() = user_id);
   end if;
 end $$;
 

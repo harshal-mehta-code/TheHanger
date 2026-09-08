@@ -27,8 +27,6 @@ import type {
 interface Props {
   /** Absent when adding a new piece. */
   item?: Item;
-  /** New pieces added from the wishlist view start out as wishes. */
-  defaultWishlist?: boolean;
   knownBrands: string[];
   knownTags: string[];
   /** Locations already in use, merged with the standard set in the picker. */
@@ -39,7 +37,6 @@ interface Props {
 
 export default function ItemEditor({
   item,
-  defaultWishlist = false,
   knownBrands,
   knownTags,
   usedLocations,
@@ -62,7 +59,6 @@ export default function ItemEditor({
   const [purchasedOn, setPurchasedOn] = useState(item?.purchasedOn ?? "");
   const [price, setPrice] = useState(item?.price != null ? String(item.price) : "");
   const [favorite, setFavorite] = useState(item?.favorite ?? false);
-  const [wishlist, setWishlist] = useState(item?.wishlist ?? defaultWishlist);
   const [location, setLocation] = useState(item?.location ?? "");
   const [newLocation, setNewLocation] = useState("");
   const [addingLocation, setAddingLocation] = useState(false);
@@ -160,7 +156,6 @@ export default function ItemEditor({
       purchasedOn: purchasedOn || undefined,
       price: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : undefined,
       favorite,
-      wishlist,
       status,
     };
 
@@ -280,15 +275,6 @@ export default function ItemEditor({
               Mark as a favourite
             </label>
 
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={wishlist}
-                onChange={(e) => setWishlist(e.target.checked)}
-                className="h-4 w-4 accent-[var(--color-berry)]"
-              />
-              Wishlist — not owned yet
-            </label>
           </div>
 
           {/* ---- details ---- */}
@@ -503,8 +489,7 @@ export default function ItemEditor({
                 </select>
               </div>
 
-              {!wishlist && (
-                <div>
+              <div>
                   <label className="label" htmlFor="ie-status">
                     Where it is
                   </label>
@@ -521,7 +506,6 @@ export default function ItemEditor({
                     ))}
                   </select>
                 </div>
-              )}
 
               <div>
                 <label className="label" htmlFor="ie-purchased">
