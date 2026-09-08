@@ -19,6 +19,7 @@ create table if not exists public.items (
   brand        text,
   color        text,
   size         text,
+  location     text,
   seasons      text[] not null default '{}',
   formality    text,
   tags         text[] not null default '{}',
@@ -48,6 +49,9 @@ create table if not exists public.items (
 
 create index if not exists items_user_updated_idx
   on public.items (user_id, updated_at desc);
+
+-- Added after the first release; harmless on a fresh database.
+alter table public.items add column if not exists location text;
 
 -- ---------------------------------------------------------------- outfits
 

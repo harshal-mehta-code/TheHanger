@@ -265,6 +265,7 @@ export default function ItemDetail({
               }
             />
             <Detail label="Size" value={item.size || "—"} />
+            <Detail label="Kept in" value={item.location || "—"} />
             <Detail
               label="Dress code"
               value={

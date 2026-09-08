@@ -2,7 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Item, Outfit } from "./types";
 
 const DB_NAME = "the-hanger";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 interface HangerDB extends DBSchema {
   items: {
@@ -28,7 +28,23 @@ interface HangerDB extends DBSchema {
     key: string;
     value: { id: string; kind: "item" | "outfit"; deletedAt: number };
   };
+  /**
+   * Deleted records, kept whole for 30 days. Curating a wardrobe is hours of
+   * work, so a mis-tap must never be final — the photo blob is deliberately
+   * left in `images` until the entry is purged.
+   */
+  trash: {
+    key: string;
+    value: TrashEntry;
+    indexes: { byDeletedAt: number };
+  };
 }
+
+export type TrashEntry =
+  | { id: string; kind: "item"; record: Item; deletedAt: number }
+  | { id: string; kind: "outfit"; record: Outfit; deletedAt: number };
+
+export const TRASH_DAYS = 30;
 
 let dbPromise: Promise<IDBPDatabase<HangerDB>> | null = null;
 
@@ -51,6 +67,10 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("deletions")) {
           db.createObjectStore("deletions", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("trash")) {
+          const store = db.createObjectStore("trash", { keyPath: "id" });
+          store.createIndex("byDeletedAt", "deletedAt");
         }
 
         // v2 gave every piece a laundry status and a wishlist flag; closets
@@ -81,6 +101,24 @@ export async function writeItem(item: Item): Promise<void> {
   await db.put("items", item);
 }
 
+/**
+ * Move a piece to the trash. The photo stays in `images` so a restore brings
+ * the whole thing back, not a card with a hole where the picture was.
+ */
+export async function trashItem(id: string): Promise<Item | undefined> {
+  const db = await getDB();
+  const item = await db.get("items", id);
+  if (!item) return undefined;
+  const tx = db.transaction(["items", "trash"], "readwrite");
+  await tx.objectStore("items").delete(id);
+  await tx
+    .objectStore("trash")
+    .put({ id, kind: "item", record: item, deletedAt: Date.now() });
+  await tx.done;
+  return item;
+}
+
+/** Hard delete, used only when purging the trash. */
 export async function removeItem(id: string): Promise<void> {
   const db = await getDB();
   const item = await db.get("items", id);
@@ -101,9 +139,66 @@ export async function writeOutfit(outfit: Outfit): Promise<void> {
   await db.put("outfits", outfit);
 }
 
+export async function trashOutfit(id: string): Promise<Outfit | undefined> {
+  const db = await getDB();
+  const outfit = await db.get("outfits", id);
+  if (!outfit) return undefined;
+  const tx = db.transaction(["outfits", "trash"], "readwrite");
+  await tx.objectStore("outfits").delete(id);
+  await tx
+    .objectStore("trash")
+    .put({ id, kind: "outfit", record: outfit, deletedAt: Date.now() });
+  await tx.done;
+  return outfit;
+}
+
 export async function removeOutfit(id: string): Promise<void> {
   const db = await getDB();
   await db.delete("outfits", id);
+}
+
+/* ---------- trash ---------------------------------------------------- */
+
+export async function readTrash(): Promise<TrashEntry[]> {
+  const db = await getDB();
+  const all = await db.getAll("trash");
+  return all.sort((a, b) => b.deletedAt - a.deletedAt);
+}
+
+/** Put a trashed record back where it came from. */
+export async function restoreFromTrash(
+  id: string,
+): Promise<TrashEntry | undefined> {
+  const db = await getDB();
+  const entry = await db.get("trash", id);
+  if (!entry) return undefined;
+  if (entry.kind === "item") {
+    await db.put("items", entry.record);
+  } else {
+    await db.put("outfits", entry.record);
+  }
+  await db.delete("trash", id);
+  return entry;
+}
+
+/** Remove one entry for good, photo included. */
+export async function purgeTrashEntry(id: string): Promise<void> {
+  const db = await getDB();
+  const entry = await db.get("trash", id);
+  if (!entry) return;
+  if (entry.kind === "item" && entry.record.imageId) {
+    await db.delete("images", entry.record.imageId);
+    revokeImageUrl(entry.record.imageId);
+  }
+  await db.delete("trash", id);
+}
+
+/** Drop anything past the retention window. Returns how many went. */
+export async function purgeExpiredTrash(): Promise<number> {
+  const cutoff = Date.now() - TRASH_DAYS * 86_400_000;
+  const stale = (await readTrash()).filter((e) => e.deletedAt < cutoff);
+  for (const entry of stale) await purgeTrashEntry(entry.id);
+  return stale.length;
 }
 
 /* ---------- tombstones ---------------------------------------------------- */
@@ -148,13 +243,14 @@ export async function removeImage(id: string): Promise<void> {
 export async function clearEverything(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(
-    ["items", "images", "outfits", "deletions"],
+    ["items", "images", "outfits", "deletions", "trash"],
     "readwrite",
   );
   await tx.objectStore("items").clear();
   await tx.objectStore("images").clear();
   await tx.objectStore("outfits").clear();
   await tx.objectStore("deletions").clear();
+  await tx.objectStore("trash").clear();
   await tx.done;
   for (const url of urlCache.values()) URL.revokeObjectURL(url);
   urlCache.clear();

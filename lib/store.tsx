@@ -55,6 +55,10 @@ interface ClosetContextValue {
   seedSample: () => Promise<number>;
   resetCloset: () => Promise<void>;
 
+  trash: db.TrashEntry[];
+  restoreFromTrash: (id: string) => Promise<void>;
+  purgeTrashEntry: (id: string) => Promise<void>;
+
   /** null when signed out or sync isn't configured. */
   syncState: SyncState;
   syncNow: () => Promise<void>;
@@ -78,6 +82,7 @@ function newId() {
 export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [trash, setTrash] = useState<db.TrashEntry[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>({
@@ -110,11 +115,14 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([db.readAllItems(), db.readAllOutfits()])
-      .then(([loadedItems, loadedOutfits]) => {
+    db.purgeExpiredTrash()
+      .catch(() => 0)
+      .then(() => Promise.all([db.readAllItems(), db.readAllOutfits(), db.readTrash()]))
+      .then(([loadedItems, loadedOutfits, loadedTrash]) => {
         if (cancelled) return;
         setItems(loadedItems);
         setOutfits(loadedOutfits);
+        setTrash(loadedTrash);
       })
       .catch(() => {
         if (!cancelled) {
@@ -214,8 +222,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       const doomed = items.find((i) => i.id === id);
       await db.recordDeletion(id, "item");
-      await db.removeItem(id);
+      await db.trashItem(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "item", id, doomed?.imageId);
         await db.clearDeletions([id]);
@@ -333,8 +342,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const deleteOutfit = useCallback(
     async (id: string) => {
       await db.recordDeletion(id, "outfit");
-      await db.removeOutfit(id);
+      await db.trashOutfit(id);
       setOutfits((prev) => prev.filter((o) => o.id !== id));
+      setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "outfit", id);
         await db.clearDeletions([id]);
@@ -560,6 +570,33 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     return seeded.length;
   }, []);
 
+  const restoreFromTrash = useCallback(
+    async (id: string) => {
+      const entry = await db.restoreFromTrash(id);
+      if (!entry) return;
+      // Restoring has to beat the tombstone, both locally and in the cloud.
+      await db.clearDeletions([id]);
+      if (entry.kind === "item") {
+        const revived = { ...entry.record, updatedAt: Date.now() };
+        await db.writeItem(revived);
+        setItems((prev) => [...prev.filter((i) => i.id !== id), revived]);
+        mirror((sb, uid) => pushItem(sb, uid, revived));
+      } else {
+        const revived = { ...entry.record, updatedAt: Date.now() };
+        await db.writeOutfit(revived);
+        setOutfits((prev) => [...prev.filter((o) => o.id !== id), revived]);
+        mirror((sb, uid) => pushOutfit(sb, uid, revived));
+      }
+      setTrash(await db.readTrash());
+    },
+    [mirror],
+  );
+
+  const purgeTrashEntry = useCallback(async (id: string) => {
+    await db.purgeTrashEntry(id);
+    setTrash(await db.readTrash());
+  }, []);
+
   /** Full two-way reconcile. Safe to call repeatedly. */
   const syncNow = useCallback(async () => {
     const supabase = getSupabase();
@@ -615,6 +652,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     await db.clearEverything();
     setItems([]);
     setOutfits([]);
+    setTrash([]);
 
     mirror(async (sb, uid) => {
       for (const { id, imageId } of doomedItems) {
@@ -651,6 +689,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      trash,
+      restoreFromTrash,
+      purgeTrashEntry,
       syncState,
       syncNow,
     }),
@@ -678,6 +719,9 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       importBackup,
       seedSample,
       resetCloset,
+      trash,
+      restoreFromTrash,
+      purgeTrashEntry,
       syncState,
       syncNow,
     ],

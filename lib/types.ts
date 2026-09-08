@@ -34,6 +34,9 @@ export interface Item {
   /** Key of a COLORS entry. */
   color?: string;
   size?: string;
+  /** Where the piece physically lives, e.g. "Bedroom Closet". Free text so a
+   *  location she invents is a first-class value, not a second-class "other". */
+  location?: string;
   seasons: Season[];
   formality?: Formality;
   tags: string[];
@@ -105,6 +108,7 @@ export interface Filters {
   /** The closet proper, or the list of pieces wanted but not owned. */
   scope: "closet" | "wishlist";
   statuses: ItemStatus[];
+  locations: string[];
   categories: CategoryId[];
   seasons: Season[];
   colors: string[];
@@ -124,6 +128,7 @@ export const EMPTY_FILTERS: Filters = {
   search: "",
   scope: "closet",
   statuses: [],
+  locations: [],
   categories: [],
   seasons: [],
   colors: [],

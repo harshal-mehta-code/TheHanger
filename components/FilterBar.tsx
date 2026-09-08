@@ -8,15 +8,17 @@ import {
   COLORS,
   FORMALITIES,
   SEASONS,
+  STANDARD_LOCATIONS,
   STATUSES,
 } from "@/lib/taxonomy";
+import { knownLocations } from "@/lib/wardrobe";
 import type { Filters, SortKey } from "@/lib/types";
 import { EMPTY_FILTERS } from "@/lib/types";
 
 interface Props {
   filters: Filters;
   onChange: (next: Filters) => void;
-  facets: { brands: string[]; tags: string[] };
+  facets: { brands: string[]; tags: string[]; locations: string[] };
   resultCount: number;
   wishlistCount: number;
 }
@@ -46,6 +48,7 @@ function activeCount(f: Filters) {
     f.tags.length +
     f.formality.length +
     f.statuses.length +
+    f.locations.length +
     (f.favoritesOnly ? 1 : 0) +
     (f.notWornDays !== null ? 1 : 0) +
     (f.neverWorn ? 1 : 0) +
@@ -71,7 +74,8 @@ export default function FilterBar({
       | "brands"
       | "tags"
       | "formality"
-      | "statuses",
+      | "statuses"
+      | "locations",
   >(key: K, value: Filters[K][number]) {
     const list = filters[key] as Filters[K][number][];
     const next = list.includes(value)
@@ -266,7 +270,24 @@ export default function FilterBar({
             </div>
 
             <div>
-              <p className="eyebrow mb-2">Where it is</p>
+              <p className="eyebrow mb-2">Where it&apos;s kept</p>
+              <div className="flex flex-wrap gap-1.5">
+                {knownLocations(facets.locations, STANDARD_LOCATIONS).map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => toggle("locations", loc)}
+                    data-active={filters.locations.includes(loc)}
+                    className="chip"
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="eyebrow mb-2">Laundry</p>
               <div className="flex flex-wrap gap-1.5">
                 {STATUSES.map((st) => (
                   <button

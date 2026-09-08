@@ -22,8 +22,14 @@ where there's room for them, and reduce to a single line on a phone.
 and seasons in a single pass. Cataloguing a whole wardrobe one modal at a time
 is the slow part of an app like this; everything else can be filled in later.
 
-**Dark mode** — Toggle from the settings menu; follows the system setting until
-you choose. The theme resolves before first paint, so there's no flash.
+**Dark mode** — Light by default; switch from the settings menu and the choice
+sticks. The theme resolves before first paint, so there's no flash.
+
+**Storage locations** — Track where each piece physically lives. Five standard
+locations ship with the app (Bedroom Closet, Coat Closet, Bedroom Dresser,
+Sub-storage, Storage Bin) and any location she types becomes a first-class
+option, offered on every piece after that. Locations are filterable and
+searchable.
 
 **Inventory** — Add a piece with a photo (camera or upload, drag-and-drop on
 desktop), a name, category, colour, brand, size, seasons, dress code, tags,
@@ -63,6 +69,11 @@ themselves as filters.
 
 **Archive** — Move a piece out of the active closet without deleting it, for
 things being donated, sold, or stored for the season.
+
+**Recently deleted** — Deleting moves a piece to a 30-day trash rather than
+erasing it. Restoring brings back the record, its photo and its wear history,
+and un-deletes it in the cloud too. Curating a wardrobe is hours of work, so a
+mis-tap is never final.
 
 **Backup** — Export the whole closet — pieces, photos, outfits and wear history
 — as a single JSON file; restore it on another device or browser from the same
@@ -177,12 +188,13 @@ components/
   OutfitDetail      look sheet, drills into each piece
   OutfitEditor      look builder with a piece picker
   AccountSheet      sign in / create account / sync status
+  TrashSheet        recently deleted, restore or erase
   SettingsMenu      account, backup, restore, sample closet, theme, erase
   Modal, ItemPhoto, Icons
 lib/
   types.ts          Item, Outfit, Filters and the rest of the domain model
   taxonomy.ts       categories, seasons, colours, dress codes, statuses, tags
-  db.ts             IndexedDB access (v3) + tombstones + object-URL cache
+  db.ts             IndexedDB (v4): records, photos, tombstones, 30-day trash
   supabase.ts       cloud client; null when sync isn't configured
   auth.tsx          session, sign in / up / out
   sync.ts           row mapping, last-write-wins reconcile, photo transfer

@@ -15,6 +15,7 @@ import {
 import { useCloset } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import AccountSheet from "./AccountSheet";
+import TrashSheet from "./TrashSheet";
 
 interface Props {
   onNotify: (message: string) => void;
@@ -22,13 +23,23 @@ interface Props {
 }
 
 export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
-  const { items, exportBackup, importBackup, seedSample, resetCloset, syncState } =
-    useCloset();
+  const {
+    items,
+    exportBackup,
+    importBackup,
+    seedSample,
+    resetCloset,
+    syncState,
+    trash,
+  } = useCloset();
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dark, setDark] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  /** Computed when the menu opens; reading the clock during render is impure. */
+  const [backupNote, setBackupNote] = useState("Download a JSON with photos");
   const { enabled: cloudOn, email, userId } = useAuth();
   const wrapRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -71,6 +82,31 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
     setConfirmReset(false);
   }
 
+  /** A curated closet is hours of work, so say plainly when it's unprotected. */
+  function describeBackup() {
+    if (items.length === 0) return "Download a JSON with photos";
+    let last: number | null = null;
+    try {
+      const raw = localStorage.getItem("hanger-last-backup");
+      last = raw ? Number(raw) : null;
+    } catch {
+      last = null;
+    }
+    if (last === null) return "Never backed up — worth doing";
+    if (Date.now() - last > 14 * 86_400_000) {
+      return "Last backup over 2 weeks ago";
+    }
+    return "Download a JSON with photos";
+  }
+
+  function markBackedUp() {
+    try {
+      localStorage.setItem("hanger-last-backup", String(Date.now()));
+    } catch {
+      // Storage refused; the backup still downloaded, we just can't date it.
+    }
+  }
+
   async function handleImport(file: File | undefined) {
     if (!file) return;
     setBusy(true);
@@ -103,7 +139,10 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
         onClick={() => {
           // The pre-paint script in the layout owns the theme; read it back on
           // open so the label matches what's actually on screen.
-          if (!open) setDark(document.documentElement.dataset.theme === "dark");
+          if (!open) {
+            setDark(document.documentElement.dataset.theme === "dark");
+            setBackupNote(describeBackup());
+          }
           setOpen((v) => !v);
         }}
         aria-expanded={open}
@@ -155,10 +194,12 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
           <MenuItem
             icon={<DownloadIcon className="h-4 w-4" />}
             label="Back up closet"
-            hint="Download a JSON with photos"
+            hint={backupNote}
             disabled={items.length === 0 || busy}
             onClick={async () => {
               await exportBackup();
+              markBackedUp();
+              setBackupNote("Download a JSON with photos");
               onNotify("Backup downloaded.");
               close();
             }}
@@ -181,6 +222,20 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
               onClick={handleSample}
             />
           )}
+
+          <MenuItem
+            icon={<TrashIcon className="h-4 w-4" />}
+            label="Recently deleted"
+            hint={
+              trash.length
+                ? `${trash.length} recoverable for 30 days`
+                : "Nothing deleted recently"
+            }
+            onClick={() => {
+              setTrashOpen(true);
+              close();
+            }}
+          />
 
           <MenuItem
             icon={
@@ -245,6 +300,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
       )}
 
       {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
+      {trashOpen && <TrashSheet onClose={() => setTrashOpen(false)} />}
 
       <input
         ref={fileRef}

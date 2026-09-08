@@ -44,11 +44,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Resolve the theme before first paint so the page never flashes
-            light before switching to dark. */}
+        {/* Light unless she has explicitly chosen dark. Resolved before first
+            paint so the page never flashes one theme then the other. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("hanger-theme")||"system";var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme:dark)").matches);document.documentElement.dataset.theme=d?"dark":"light";}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem("hanger-theme")==="dark"?"dark":"light";}catch(e){}})();`,
           }}
         />
       </head>

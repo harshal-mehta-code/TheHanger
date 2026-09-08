@@ -107,6 +107,18 @@ export const COLOR_BY_ID: Record<string, ColorMeta> = Object.fromEntries(
   COLORS.map((c) => [c.id, c]),
 );
 
+/**
+ * Where pieces are kept. These are only defaults — the editor accepts any
+ * location she types, and anything in use shows up alongside these.
+ */
+export const STANDARD_LOCATIONS = [
+  "Bedroom Closet",
+  "Coat Closet",
+  "Bedroom Dresser",
+  "Sub-storage",
+  "Storage Bin",
+];
+
 /** Suggested tags offered in the editor; users can add anything. */
 export const TAG_SUGGESTIONS = [
   "everyday",

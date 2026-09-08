@@ -54,6 +54,7 @@ function matchesSearch(item: Item, query: string): boolean {
     item.brand,
     item.subtype,
     item.color,
+    item.location,
     item.notes,
     ...item.tags,
   ]
@@ -71,6 +72,11 @@ export function filterItems(items: Item[], filters: Filters): Item[] {
   return items.filter((item) => {
     if (item.wishlist !== (filters.scope === "wishlist")) return false;
     if (filters.statuses.length && !filters.statuses.includes(item.status))
+      return false;
+    if (
+      filters.locations.length &&
+      !(item.location && filters.locations.includes(item.location))
+    )
       return false;
     if (!filters.includeArchived && item.archived) return false;
     if (filters.favoritesOnly && !item.favorite) return false;
@@ -193,14 +199,23 @@ export function computeStats(items: Item[]): ClosetStats {
 export function collectFacets(items: Item[]) {
   const brands = new Set<string>();
   const tags = new Set<string>();
+  const locations = new Set<string>();
   for (const item of items) {
     if (item.brand) brands.add(item.brand);
+    if (item.location) locations.add(item.location);
     for (const t of item.tags) tags.add(t);
   }
   return {
     brands: [...brands].sort((a, b) => a.localeCompare(b)),
     tags: [...tags].sort((a, b) => a.localeCompare(b)),
+    locations: [...locations].sort((a, b) => a.localeCompare(b)),
   };
+}
+
+/** Standard locations plus any she has invented, deduped and ordered. */
+export function knownLocations(inUse: string[], standard: string[]) {
+  const extra = inUse.filter((l) => !standard.includes(l));
+  return [...standard, ...extra];
 }
 
 /** Resolves an outfit's member ids to items, dropping any since deleted. */

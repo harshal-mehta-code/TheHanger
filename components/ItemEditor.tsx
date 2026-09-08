@@ -10,9 +10,11 @@ import {
   COLORS,
   FORMALITIES,
   SEASONS,
+  STANDARD_LOCATIONS,
   STATUSES,
   TAG_SUGGESTIONS,
 } from "@/lib/taxonomy";
+import { knownLocations } from "@/lib/wardrobe";
 import type {
   CategoryId,
   Formality,
@@ -29,6 +31,8 @@ interface Props {
   defaultWishlist?: boolean;
   knownBrands: string[];
   knownTags: string[];
+  /** Locations already in use, merged with the standard set in the picker. */
+  usedLocations: string[];
   onClose: () => void;
   onSave: (draft: ItemDraft, photo: Blob | null | undefined) => Promise<void>;
 }
@@ -38,6 +42,7 @@ export default function ItemEditor({
   defaultWishlist = false,
   knownBrands,
   knownTags,
+  usedLocations,
   onClose,
   onSave,
 }: Props) {
@@ -58,6 +63,9 @@ export default function ItemEditor({
   const [price, setPrice] = useState(item?.price != null ? String(item.price) : "");
   const [favorite, setFavorite] = useState(item?.favorite ?? false);
   const [wishlist, setWishlist] = useState(item?.wishlist ?? defaultWishlist);
+  const [location, setLocation] = useState(item?.location ?? "");
+  const [newLocation, setNewLocation] = useState("");
+  const [addingLocation, setAddingLocation] = useState(false);
   const [status, setStatus] = useState<ItemStatus>(item?.status ?? "ready");
 
   /** `undefined` = photo untouched, `null` = cleared, Blob = replaced. */
@@ -144,6 +152,7 @@ export default function ItemEditor({
       brand: brand.trim() || undefined,
       color: color || undefined,
       size: size.trim() || undefined,
+      location: location.trim() || undefined,
       seasons,
       formality: formality || undefined,
       tags,
@@ -332,6 +341,75 @@ export default function ItemEditor({
                     {s.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="label">Where it&apos;s kept</span>
+              <div className="flex flex-wrap gap-1.5">
+                {/* The current value is folded in so a location she just
+                    invented has a chip immediately, not only after saving. */}
+                {knownLocations(
+                  location ? [...usedLocations, location] : usedLocations,
+                  STANDARD_LOCATIONS,
+                ).map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setLocation(location === loc ? "" : loc)}
+                    data-active={location === loc}
+                    className="chip"
+                  >
+                    {loc}
+                  </button>
+                ))}
+
+                {addingLocation ? (
+                  <span className="flex items-center gap-1.5">
+                    <input
+                      value={newLocation}
+                      autoFocus
+                      onChange={(e) => setNewLocation(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const v = newLocation.trim();
+                          if (v) setLocation(v);
+                          setNewLocation("");
+                          setAddingLocation(false);
+                        }
+                        if (e.key === "Escape") {
+                          setNewLocation("");
+                          setAddingLocation(false);
+                        }
+                      }}
+                      placeholder="Guest room rail"
+                      aria-label="New location name"
+                      className="field w-44 py-1.5 text-sm"
+                      maxLength={40}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = newLocation.trim();
+                        if (v) setLocation(v);
+                        setNewLocation("");
+                        setAddingLocation(false);
+                      }}
+                      className="btn-ghost px-3 py-1.5 text-xs"
+                    >
+                      Add
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingLocation(true)}
+                    className="rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-muted transition-colors hover:border-berry hover:text-berry"
+                  >
+                    + New location
+                  </button>
+                )}
               </div>
             </div>
 

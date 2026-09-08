@@ -207,6 +207,7 @@ export default function ClosetPage() {
           defaultWishlist={filters.scope === "wishlist"}
           knownBrands={facets.brands}
           knownTags={facets.tags}
+          usedLocations={facets.locations}
           onClose={() => setEditing(null)}
           onSave={async (draft, photo) => {
             await addItem(draft, photo ?? null);
@@ -220,6 +221,7 @@ export default function ClosetPage() {
           item={editing.item}
           knownBrands={facets.brands}
           knownTags={facets.tags}
+          usedLocations={facets.locations}
           onClose={() => setEditing(null)}
           onSave={async (draft, photo) => {
             await updateItem(editing.item.id, draft, photo);
