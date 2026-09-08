@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as db from "./db";
 import { PHOTO_BUCKET, photoPath } from "./supabase";
-import type { Inspo, Item, Outfit } from "./types";
+import type { DayPlan, Inspo, Item, Outfit, Trip } from "./types";
 
 /**
  * Sync model: the browser stays the source of truth for reading, and the cloud
@@ -149,6 +149,63 @@ function rowToInspo(row: Row): Inspo {
   };
 }
 
+function planToRow(plan: DayPlan, userId: string): Row {
+  return {
+    // A day is unique per user, so the composite is the natural key.
+    user_id: userId,
+    date: plan.date,
+    outfit_id: plan.outfitId ?? null,
+    item_ids: plan.itemIds,
+    note: plan.note ?? null,
+    updated_at: new Date(plan.updatedAt).toISOString(),
+    deleted_at: null,
+  };
+}
+
+function rowToPlan(row: Row): DayPlan {
+  return {
+    date: String(row.date),
+    outfitId: (row.outfit_id as string) ?? undefined,
+    itemIds: (row.item_ids as string[]) ?? [],
+    note: (row.note as string) ?? undefined,
+    updatedAt: new Date(String(row.updated_at)).getTime(),
+  };
+}
+
+function tripToRow(trip: Trip, userId: string): Row {
+  return {
+    id: trip.id,
+    user_id: userId,
+    name: trip.name,
+    destination: trip.destination ?? null,
+    start_date: trip.startDate ?? null,
+    end_date: trip.endDate ?? null,
+    notes: trip.notes ?? null,
+    outfit_ids: trip.outfitIds,
+    item_ids: trip.itemIds,
+    packed: trip.packed,
+    created_at: new Date(trip.createdAt).toISOString(),
+    updated_at: new Date(trip.updatedAt).toISOString(),
+    deleted_at: null,
+  };
+}
+
+function rowToTrip(row: Row): Trip {
+  return {
+    id: String(row.id),
+    name: String(row.name ?? "Trip"),
+    destination: (row.destination as string) ?? undefined,
+    startDate: (row.start_date as string) ?? undefined,
+    endDate: (row.end_date as string) ?? undefined,
+    notes: (row.notes as string) ?? undefined,
+    outfitIds: (row.outfit_ids as string[]) ?? [],
+    itemIds: (row.item_ids as string[]) ?? [],
+    packed: (row.packed as string[]) ?? [],
+    createdAt: new Date(String(row.created_at)).getTime(),
+    updatedAt: new Date(String(row.updated_at)).getTime(),
+  };
+}
+
 /* ---------------------------------------------------------------- photos */
 
 /** Upload a local photo if the cloud doesn't have it yet. */
@@ -212,9 +269,8 @@ export async function syncAll(
   const tombstones = await db.readDeletions();
   const sent: string[] = [];
   for (const t of tombstones) {
-    const table = t.kind === "item" ? "items" : "outfits";
     const { error } = await supabase
-      .from(table)
+      .from(TABLE[t.kind])
       .update({ deleted_at: new Date(t.deletedAt).toISOString() })
       .eq("id", t.id)
       .eq("user_id", userId);
@@ -368,6 +424,88 @@ export async function syncAll(
     pushed += outfitUpserts.length;
   }
 
+  /* --- plans --- */
+  const localPlans = await db.readAllPlans();
+  const { data: planRows, error: planErr } = await supabase
+    .from("plans")
+    .select("*")
+    .eq("user_id", userId);
+  if (planErr) throw planErr;
+
+  const remotePlans = new Map<string, Row>(
+    (planRows ?? []).map((r: Row) => [String(r.date), r]),
+  );
+  const localPlansByDate = new Map(localPlans.map((p) => [p.date, p]));
+
+  const planUpserts: Row[] = [];
+  for (const plan of localPlans) {
+    const remote = remotePlans.get(plan.date);
+    if (remote?.deleted_at) {
+      await db.removePlan(plan.date);
+      continue;
+    }
+    const remoteUpdated = remote
+      ? new Date(String(remote.updated_at)).getTime()
+      : -1;
+    if (plan.updatedAt > remoteUpdated) planUpserts.push(planToRow(plan, userId));
+  }
+  for (const [date, row] of remotePlans) {
+    if (row.deleted_at) continue;
+    const local = localPlansByDate.get(date);
+    const remoteUpdated = new Date(String(row.updated_at)).getTime();
+    if (!local || remoteUpdated > local.updatedAt) {
+      await db.writePlan(rowToPlan(row));
+      pulled++;
+    }
+  }
+  if (planUpserts.length) {
+    const { error } = await supabase
+      .from("plans")
+      .upsert(planUpserts, { onConflict: "user_id,date" });
+    if (error) throw error;
+    pushed += planUpserts.length;
+  }
+
+  /* --- trips --- */
+  const localTrips = await db.readAllTrips();
+  const { data: tripRows, error: tripErr } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("user_id", userId);
+  if (tripErr) throw tripErr;
+
+  const remoteTrips = new Map<string, Row>(
+    (tripRows ?? []).map((r: Row) => [String(r.id), r]),
+  );
+  const localTripsById = new Map(localTrips.map((t) => [t.id, t]));
+
+  const tripUpserts: Row[] = [];
+  for (const trip of localTrips) {
+    const remote = remoteTrips.get(trip.id);
+    if (remote?.deleted_at) {
+      await db.removeTrip(trip.id);
+      continue;
+    }
+    const remoteUpdated = remote
+      ? new Date(String(remote.updated_at)).getTime()
+      : -1;
+    if (trip.updatedAt > remoteUpdated) tripUpserts.push(tripToRow(trip, userId));
+  }
+  for (const [id, row] of remoteTrips) {
+    if (row.deleted_at) continue;
+    const local = localTripsById.get(id);
+    const remoteUpdated = new Date(String(row.updated_at)).getTime();
+    if (!local || remoteUpdated > local.updatedAt) {
+      await db.writeTrip(rowToTrip(row));
+      pulled++;
+    }
+  }
+  if (tripUpserts.length) {
+    const { error } = await supabase.from("trips").upsert(tripUpserts);
+    if (error) throw error;
+    pushed += tripUpserts.length;
+  }
+
   return { pulled, pushed, deleted: sent.length };
 }
 
@@ -408,19 +546,46 @@ export async function pushInspo(
   if (error) throw error;
 }
 
-const TABLE = { item: "items", outfit: "outfits", inspo: "inspo" } as const;
+export async function pushPlan(
+  supabase: SupabaseClient,
+  userId: string,
+  plan: DayPlan,
+) {
+  const { error } = await supabase
+    .from("plans")
+    .upsert(planToRow(plan, userId), { onConflict: "user_id,date" });
+  if (error) throw error;
+}
+
+export async function pushTrip(
+  supabase: SupabaseClient,
+  userId: string,
+  trip: Trip,
+) {
+  const { error } = await supabase.from("trips").upsert(tripToRow(trip, userId));
+  if (error) throw error;
+}
+
+const TABLE = {
+  item: "items",
+  outfit: "outfits",
+  inspo: "inspo",
+  trip: "trips",
+  plan: "plans",
+} as const;
 
 export async function pushDeletion(
   supabase: SupabaseClient,
   userId: string,
-  kind: "item" | "outfit" | "inspo",
+  kind: "item" | "outfit" | "inspo" | "trip" | "plan",
   id: string,
   imageIds: string[] = [],
 ) {
+  // Plans are keyed by date rather than an id column.
   const { error } = await supabase
     .from(TABLE[kind])
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
+    .eq(kind === "plan" ? "date" : "id", id)
     .eq("user_id", userId);
   if (error) throw error;
   for (const imageId of imageIds) {

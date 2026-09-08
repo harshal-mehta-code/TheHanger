@@ -13,8 +13,17 @@ import { useAuth } from "./auth";
 import { blobToDataUrl, dataUrlToBlob } from "./image";
 import { SAMPLE_CLOSET } from "./sample";
 import { getSupabase } from "./supabase";
-import { pushDeletion, pushInspo, pushItem, pushOutfit, syncAll } from "./sync";
+import {
+  pushDeletion,
+  pushInspo,
+  pushItem,
+  pushOutfit,
+  pushPlan,
+  pushTrip,
+  syncAll,
+} from "./sync";
 import type {
+  DayPlan,
   Inspo,
   InspoDraft,
   Item,
@@ -22,6 +31,8 @@ import type {
   ItemStatus,
   Outfit,
   OutfitDraft,
+  Trip,
+  TripDraft,
   WearEvent,
 } from "./types";
 import { todayISO } from "./wardrobe";
@@ -63,6 +74,20 @@ interface ClosetContextValue {
   deleteInspo: (id: string) => Promise<void>;
   toggleInspoFavorite: (id: string) => Promise<void>;
 
+  plans: DayPlan[];
+  /** Passing an empty plan clears the day. */
+  setDayPlan: (
+    date: string,
+    plan: { outfitId?: string; itemIds: string[]; note?: string },
+  ) => Promise<void>;
+  clearDayPlan: (date: string) => Promise<void>;
+
+  trips: Trip[];
+  addTrip: (draft: TripDraft) => Promise<Trip>;
+  updateTrip: (id: string, draft: TripDraft) => Promise<void>;
+  deleteTrip: (id: string) => Promise<void>;
+  setPacked: (tripId: string, itemId: string, packed: boolean) => Promise<void>;
+
   exportBackup: () => Promise<void>;
   importBackup: (file: File) => Promise<number>;
   seedSample: () => Promise<number>;
@@ -96,6 +121,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [inspo, setInspo] = useState<Inspo[]>([]);
+  const [plans, setPlans] = useState<DayPlan[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [trash, setTrash] = useState<db.TrashEntry[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,16 +163,29 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
           db.readAllItems(),
           db.readAllOutfits(),
           db.readAllInspo(),
+          db.readAllPlans(),
+          db.readAllTrips(),
           db.readTrash(),
         ]),
       )
-      .then(([loadedItems, loadedOutfits, loadedInspo, loadedTrash]) => {
-        if (cancelled) return;
-        setItems(loadedItems);
-        setOutfits(loadedOutfits);
-        setInspo(loadedInspo);
-        setTrash(loadedTrash);
-      })
+      .then(
+        ([
+          loadedItems,
+          loadedOutfits,
+          loadedInspo,
+          loadedPlans,
+          loadedTrips,
+          loadedTrash,
+        ]) => {
+          if (cancelled) return;
+          setItems(loadedItems);
+          setOutfits(loadedOutfits);
+          setInspo(loadedInspo);
+          setPlans(loadedPlans);
+          setTrips(loadedTrips);
+          setTrash(loadedTrash);
+        },
+      )
       .catch(() => {
         if (!cancelled) {
           setError(
@@ -522,6 +562,99 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     [inspo, mirror],
   );
 
+  /* ---------------- planning ---------------- */
+
+  const setDayPlan = useCallback(
+    async (
+      date: string,
+      plan: { outfitId?: string; itemIds: string[]; note?: string },
+    ) => {
+      // An empty plan is a cleared day, not a blank record to keep around.
+      if (!plan.outfitId && plan.itemIds.length === 0 && !plan.note?.trim()) {
+        await db.removePlan(date);
+        setPlans((prev) => prev.filter((p) => p.date !== date));
+        mirror((sb, uid) => pushDeletion(sb, uid, "plan", date));
+        return;
+      }
+      const next: DayPlan = { date, ...plan, updatedAt: Date.now() };
+      await db.writePlan(next);
+      setPlans((prev) => [...prev.filter((p) => p.date !== date), next]);
+      mirror((sb, uid) => pushPlan(sb, uid, next));
+    },
+    [mirror],
+  );
+
+  const clearDayPlan = useCallback(
+    async (date: string) => {
+      await db.removePlan(date);
+      setPlans((prev) => prev.filter((p) => p.date !== date));
+      mirror((sb, uid) => pushDeletion(sb, uid, "plan", date));
+    },
+    [mirror],
+  );
+
+  const addTrip = useCallback(
+    async (draft: TripDraft) => {
+      const now = Date.now();
+      const trip: Trip = {
+        ...draft,
+        id: newId(),
+        packed: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.writeTrip(trip);
+      setTrips((prev) => [...prev, trip]);
+      mirror((sb, uid) => pushTrip(sb, uid, trip));
+      return trip;
+    },
+    [mirror],
+  );
+
+  const updateTrip = useCallback(
+    async (id: string, draft: TripDraft) => {
+      const existing = trips.find((t) => t.id === id);
+      if (!existing) return;
+      const next: Trip = { ...existing, ...draft, updatedAt: Date.now() };
+      await db.writeTrip(next);
+      setTrips((prev) => prev.map((t) => (t.id === id ? next : t)));
+      mirror((sb, uid) => pushTrip(sb, uid, next));
+    },
+    [trips, mirror],
+  );
+
+  const deleteTrip = useCallback(
+    async (id: string) => {
+      await db.recordDeletion(id, "trip");
+      await db.trashTrip(id);
+      setTrips((prev) => prev.filter((t) => t.id !== id));
+      setTrash(await db.readTrash());
+      mirror(async (sb, uid) => {
+        await pushDeletion(sb, uid, "trip", id);
+        await db.clearDeletions([id]);
+      });
+    },
+    [mirror],
+  );
+
+  const setPacked = useCallback(
+    async (tripId: string, itemId: string, packed: boolean) => {
+      const existing = trips.find((t) => t.id === tripId);
+      if (!existing) return;
+      const next: Trip = {
+        ...existing,
+        packed: packed
+          ? [...new Set([...existing.packed, itemId])]
+          : existing.packed.filter((x) => x !== itemId),
+        updatedAt: Date.now(),
+      };
+      await db.writeTrip(next);
+      setTrips((prev) => prev.map((t) => (t.id === tripId ? next : t)));
+      mirror((sb, uid) => pushTrip(sb, uid, next));
+    },
+    [trips, mirror],
+  );
+
   /* ---------------- backup ---------------- */
 
   const exportBackup = useCallback(async () => {
@@ -702,11 +835,16 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         await db.writeOutfit(revived);
         setOutfits((prev) => [...prev.filter((o) => o.id !== id), revived]);
         mirror((sb, uid) => pushOutfit(sb, uid, revived));
-      } else {
+      } else if (entry.kind === "inspo") {
         const revived = { ...entry.record, updatedAt: Date.now() };
         await db.writeInspo(revived);
         setInspo((prev) => [...prev.filter((x) => x.id !== id), revived]);
         mirror((sb, uid) => pushInspo(sb, uid, revived));
+      } else {
+        const revived = { ...entry.record, updatedAt: Date.now() };
+        await db.writeTrip(revived);
+        setTrips((prev) => [...prev.filter((t) => t.id !== id), revived]);
+        mirror((sb, uid) => pushTrip(sb, uid, revived));
       }
       setTrash(await db.readTrash());
     },
@@ -727,14 +865,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await syncAll(supabase, userId);
       // Local stores are the render source, so re-read after a merge.
-      const [freshItems, freshOutfits, freshInspo] = await Promise.all([
+      const [freshItems, freshOutfits, freshInspo, freshPlans, freshTrips] =
+        await Promise.all([
         db.readAllItems(),
         db.readAllOutfits(),
         db.readAllInspo(),
+        db.readAllPlans(),
+        db.readAllTrips(),
       ]);
       setItems(freshItems);
       setOutfits(freshOutfits);
       setInspo(freshInspo);
+      setPlans(freshPlans);
+      setTrips(freshTrips);
       setSyncState({
         status: "idle",
         lastSyncedAt: Date.now(),
@@ -776,6 +919,8 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     setOutfits([]);
     setInspo([]);
+    setPlans([]);
+    setTrips([]);
     setTrash([]);
 
     mirror(async (sb, uid) => {
@@ -818,6 +963,14 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       updateInspo,
       deleteInspo,
       toggleInspoFavorite,
+      plans,
+      setDayPlan,
+      clearDayPlan,
+      trips,
+      addTrip,
+      updateTrip,
+      deleteTrip,
+      setPacked,
       trash,
       restoreFromTrash,
       purgeTrashEntry,
@@ -853,6 +1006,14 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       updateInspo,
       deleteInspo,
       toggleInspoFavorite,
+      plans,
+      setDayPlan,
+      clearDayPlan,
+      trips,
+      addTrip,
+      updateTrip,
+      deleteTrip,
+      setPacked,
       trash,
       restoreFromTrash,
       purgeTrashEntry,

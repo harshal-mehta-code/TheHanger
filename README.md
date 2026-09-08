@@ -5,14 +5,16 @@ what's actually in rotation, and rediscover the things that have been hiding at
 the back of the closet.
 
 Built with Next.js 16 (App Router), React 19, TypeScript and Tailwind 4.
-Deploys to Vercel as a static front end — no database, no accounts, no server.
+Deploys to Vercel as a static front end. It works with no account and no
+network; add a Supabase project and the same closet syncs across devices.
 
 ## What it does
 
-**Four views** — *Closet* (everything you own), *Outfits* (looks built from
-pieces you own), *Inspo* (reference material and vibes), and *Insights* (what
-the closet is actually doing). Sections sit in the header on a
-laptop and in a bottom bar on a phone.
+**Five views** — *Closet* (everything you own), *Outfits* (looks built from
+pieces you own), *Inspo* (reference material and vibes), *Plan* (a calendar of
+what to wear and packing lists for trips), and *Insights* (what the closet is
+actually doing). Sections sit in the header on a laptop and in a bottom bar on a
+phone.
 
 **Kept calm on purpose** — the closet screen is clothes, not controls. All
 narrowing lives behind one *Filters* button beside the category rail, so a phone
@@ -60,6 +62,19 @@ pieces you already own that fit the vibe, so it's clear what you're working
 with. This replaces the old wishlist checkbox; existing wishlist pieces are
 migrated into the closet with a `wishlist` tag so nothing is lost.
 
+**Plan · Calendar** — Plan what to wear on any day: pick a saved look or
+individual pieces, add a note ("dinner with the Shahs — gold earrings"), and the
+month grid shows a thumbnail of the plan on that day. Tapping a past or present
+day offers *Mark as worn*, which logs a wear for every piece in one tap, so
+planning and tracking are the same gesture rather than two chores.
+
+**Plan · Packing lists** — A list per trip, with dates and a destination. Add
+whole looks or single pieces; the checklist is **derived, never copied**, so
+editing a look later updates every list it's packed in. Each row shows which
+look the piece came from, where it's kept, and whether it's in the wash — the
+three things that actually stall packing. Tick as you go and the progress bar
+follows.
+
 **Insights** — Wear activity by month, what you own by category, best and worst
 cost per wear, the pieces working hardest, the ones waiting longest, and spend
 by category.
@@ -104,9 +119,9 @@ before accounts existed.
 is plenty).
 
 **2. Create the schema.** Open Dashboard → SQL Editor → New query, paste all of
-[`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the two
-tables, the row-level-security policies, and the private `wardrobe` bucket for
-photos. Re-running it later is safe.
+[`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the tables,
+the row-level-security policies, and the private `wardrobe` bucket for photos.
+Re-running it later is safe.
 
 **3. Copy the keys** from Dashboard → Settings → API: the *Project URL* and the
 *anon / public* key.
@@ -180,6 +195,7 @@ app/
   page.tsx          the closet: pulse, filters, grid, overlays
   outfits/page.tsx  saved looks
   inspo/page.tsx    reference boards
+  plan/page.tsx     outfit calendar and packing lists
   insights/page.tsx charts and leaderboards
   globals.css       design tokens and component classes
   icon.svg, apple-icon.tsx, manifest.ts
@@ -196,14 +212,16 @@ components/
   InspoCard         collage card for a saved board
   InspoDetail       board sheet with a lightbox and linked pieces
   InspoEditor       multi-image board builder
+  DayPlanSheet      what to wear on one day, and marking it worn
+  TripSheet         a packing list and its derived checklist
   AccountSheet      sign in / create account / sync status
   TrashSheet        recently deleted, restore or erase
   SettingsMenu      account, backup, restore, sample closet, theme, erase
   Modal, ItemPhoto, Icons
 lib/
-  types.ts          Item, Outfit, Filters and the rest of the domain model
+  types.ts          Item, Outfit, Inspo, DayPlan, Trip, Filters
   taxonomy.ts       categories, seasons, colours, dress codes, statuses, tags
-  db.ts             IndexedDB (v5): records, photos, tombstones, 30-day trash
+  db.ts             IndexedDB (v6): records, photos, tombstones, 30-day trash
   supabase.ts       cloud client; null when sync isn't configured
   auth.tsx          session, sign in / up / out
   sync.ts           row mapping, last-write-wins reconcile, photo transfer

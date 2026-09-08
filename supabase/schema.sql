@@ -102,11 +102,48 @@ create table if not exists public.inspo (
 create index if not exists inspo_user_updated_idx
   on public.inspo (user_id, updated_at desc);
 
+-- ---------------------------------------------------------------- planning
+
+-- One plan per day per person, so the natural key is (user_id, date).
+create table if not exists public.plans (
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  date       date not null,
+  outfit_id  uuid,
+  item_ids   uuid[] not null default '{}',
+  note       text,
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  primary key (user_id, date)
+);
+
+create table if not exists public.trips (
+  id          uuid primary key,
+  user_id     uuid not null references auth.users (id) on delete cascade,
+
+  name        text not null,
+  destination text,
+  start_date  date,
+  end_date    date,
+  notes       text,
+  outfit_ids  uuid[] not null default '{}',
+  item_ids    uuid[] not null default '{}',
+  packed      uuid[] not null default '{}',
+
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  deleted_at  timestamptz
+);
+
+create index if not exists trips_user_updated_idx
+  on public.trips (user_id, updated_at desc);
+
 -- ---------------------------------------------------------------- policies
 
 alter table public.items   enable row level security;
 alter table public.outfits enable row level security;
 alter table public.inspo   enable row level security;
+alter table public.plans   enable row level security;
+alter table public.trips   enable row level security;
 
 do $$
 begin
@@ -150,6 +187,32 @@ begin
   end if;
   if not exists (select 1 from pg_policies where tablename = 'inspo' and policyname = 'inspo_delete_own') then
     create policy inspo_delete_own on public.inspo for delete using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename = 'plans' and policyname = 'plans_select_own') then
+    create policy plans_select_own on public.plans for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'plans' and policyname = 'plans_insert_own') then
+    create policy plans_insert_own on public.plans for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'plans' and policyname = 'plans_update_own') then
+    create policy plans_update_own on public.plans for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'plans' and policyname = 'plans_delete_own') then
+    create policy plans_delete_own on public.plans for delete using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename = 'trips' and policyname = 'trips_select_own') then
+    create policy trips_select_own on public.trips for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'trips' and policyname = 'trips_insert_own') then
+    create policy trips_insert_own on public.trips for insert with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'trips' and policyname = 'trips_update_own') then
+    create policy trips_update_own on public.trips for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'trips' and policyname = 'trips_delete_own') then
+    create policy trips_delete_own on public.trips for delete using (auth.uid() = user_id);
   end if;
 end $$;
 

@@ -103,6 +103,45 @@ export type InspoDraft = Omit<
   "id" | "createdAt" | "updatedAt" | "favorite" | "imageIds"
 > & { favorite?: boolean };
 
+/**
+ * What she plans to wear on a given day. Keyed by date, so a day holds at most
+ * one plan — planning is about deciding, not collecting options.
+ */
+export interface DayPlan {
+  /** "YYYY-MM-DD", and the primary key. */
+  date: string;
+  /** A saved look, or ad-hoc pieces, or both. */
+  outfitId?: string;
+  itemIds: string[];
+  note?: string;
+  updatedAt: number;
+}
+
+/**
+ * A packing list. Outfits are referenced rather than copied, so the checklist
+ * follows the look if she edits it later.
+ */
+export interface Trip {
+  id: string;
+  name: string;
+  destination?: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  outfitIds: string[];
+  /** Pieces added on their own, outside any look. */
+  itemIds: string[];
+  /** Item ids ticked off as packed. */
+  packed: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type TripDraft = Omit<
+  Trip,
+  "id" | "createdAt" | "updatedAt" | "packed"
+>;
+
 export type OutfitDraft = Omit<
   Outfit,
   "id" | "createdAt" | "updatedAt" | "wears" | "favorite"

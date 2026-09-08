@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  /* Narrowest phones need one more step below Tailwind's smallest default. */
+  --breakpoint-xs: 25rem;
+
   --color-bone: #fbf6f0;
   --color-bone-deep: #f4ece2;
   --color-shell: #ffffff;

@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HangerMark, SparkleIcon, ImageIcon, ChartIcon } from "./Icons";
+import {
+  HangerMark,
+  SparkleIcon,
+  ImageIcon,
+  CalendarIcon,
+  ChartIcon,
+} from "./Icons";
 
 const TABS = [
   { href: "/", label: "Closet", Icon: HangerMark },
   { href: "/outfits", label: "Outfits", Icon: SparkleIcon },
   { href: "/inspo", label: "Inspo", Icon: ImageIcon },
+  { href: "/plan", label: "Plan", Icon: CalendarIcon },
   { href: "/insights", label: "Insights", Icon: ChartIcon },
 ];
 

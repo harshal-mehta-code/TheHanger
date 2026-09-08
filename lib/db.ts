@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Inspo, Item, Outfit } from "./types";
+import type { DayPlan, Inspo, Item, Outfit, Trip } from "./types";
 
 const DB_NAME = "the-hanger";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 interface HangerDB extends DBSchema {
   items: {
@@ -23,6 +23,15 @@ interface HangerDB extends DBSchema {
     key: string;
     value: Inspo;
   };
+  /** Keyed by date — one plan per day. */
+  plans: {
+    key: string;
+    value: DayPlan;
+  };
+  trips: {
+    key: string;
+    value: Trip;
+  };
   /**
    * Tombstones. A hard delete leaves nothing for sync to see, so a second
    * device would happily push the piece back; these outlive the row until the
@@ -30,7 +39,11 @@ interface HangerDB extends DBSchema {
    */
   deletions: {
     key: string;
-    value: { id: string; kind: "item" | "outfit" | "inspo"; deletedAt: number };
+    value: {
+    id: string;
+    kind: "item" | "outfit" | "inspo" | "trip";
+    deletedAt: number;
+  };
   };
   /**
    * Deleted records, kept whole for 30 days. Curating a wardrobe is hours of
@@ -47,7 +60,8 @@ interface HangerDB extends DBSchema {
 export type TrashEntry =
   | { id: string; kind: "item"; record: Item; deletedAt: number }
   | { id: string; kind: "outfit"; record: Outfit; deletedAt: number }
-  | { id: string; kind: "inspo"; record: Inspo; deletedAt: number };
+  | { id: string; kind: "inspo"; record: Inspo; deletedAt: number }
+  | { id: string; kind: "trip"; record: Trip; deletedAt: number };
 
 export const TRASH_DAYS = 30;
 
@@ -75,6 +89,12 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("inspo")) {
           db.createObjectStore("inspo", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("plans")) {
+          db.createObjectStore("plans", { keyPath: "date" });
+        }
+        if (!db.objectStoreNames.contains("trips")) {
+          db.createObjectStore("trips", { keyPath: "id" });
         }
         if (!db.objectStoreNames.contains("trash")) {
           const store = db.createObjectStore("trash", { keyPath: "id" });
@@ -210,6 +230,51 @@ export async function removeInspo(id: string): Promise<void> {
   await db.delete("inspo", id);
 }
 
+/* ---------- plans & trips -------------------------------------------- */
+
+export async function readAllPlans(): Promise<DayPlan[]> {
+  const db = await getDB();
+  return db.getAll("plans");
+}
+
+export async function writePlan(plan: DayPlan): Promise<void> {
+  const db = await getDB();
+  await db.put("plans", plan);
+}
+
+export async function removePlan(date: string): Promise<void> {
+  const db = await getDB();
+  await db.delete("plans", date);
+}
+
+export async function readAllTrips(): Promise<Trip[]> {
+  const db = await getDB();
+  return db.getAll("trips");
+}
+
+export async function writeTrip(trip: Trip): Promise<void> {
+  const db = await getDB();
+  await db.put("trips", trip);
+}
+
+export async function trashTrip(id: string): Promise<Trip | undefined> {
+  const db = await getDB();
+  const trip = await db.get("trips", id);
+  if (!trip) return undefined;
+  const tx = db.transaction(["trips", "trash"], "readwrite");
+  await tx.objectStore("trips").delete(id);
+  await tx
+    .objectStore("trash")
+    .put({ id, kind: "trip", record: trip, deletedAt: Date.now() });
+  await tx.done;
+  return trip;
+}
+
+export async function removeTrip(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete("trips", id);
+}
+
 /* ---------- trash ---------------------------------------------------- */
 
 export async function readTrash(): Promise<TrashEntry[]> {
@@ -229,6 +294,8 @@ export async function restoreFromTrash(
     await db.put("items", entry.record);
   } else if (entry.kind === "outfit") {
     await db.put("outfits", entry.record);
+  } else if (entry.kind === "trip") {
+    await db.put("trips", entry.record);
   } else {
     await db.put("inspo", entry.record);
   }
@@ -266,7 +333,7 @@ export async function purgeExpiredTrash(): Promise<number> {
 
 export async function recordDeletion(
   id: string,
-  kind: "item" | "outfit" | "inspo",
+  kind: "item" | "outfit" | "inspo" | "trip",
 ): Promise<void> {
   const db = await getDB();
   await db.put("deletions", { id, kind, deletedAt: Date.now() });
@@ -304,13 +371,15 @@ export async function removeImage(id: string): Promise<void> {
 export async function clearEverything(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(
-    ["items", "images", "outfits", "inspo", "deletions", "trash"],
+    ["items", "images", "outfits", "inspo", "plans", "trips", "deletions", "trash"],
     "readwrite",
   );
   await tx.objectStore("items").clear();
   await tx.objectStore("images").clear();
   await tx.objectStore("outfits").clear();
   await tx.objectStore("inspo").clear();
+  await tx.objectStore("plans").clear();
+  await tx.objectStore("trips").clear();
   await tx.objectStore("deletions").clear();
   await tx.objectStore("trash").clear();
   await tx.done;

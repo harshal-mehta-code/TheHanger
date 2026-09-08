@@ -12,7 +12,19 @@ function labelOf(entry: TrashEntry) {
   return entry.kind === "inspo" ? entry.record.title : entry.record.name;
 }
 
-const KIND_LABEL = { item: "Piece", outfit: "Look", inspo: "Inspo" } as const;
+const KIND_LABEL: Record<TrashEntry["kind"], string> = {
+  item: "Piece",
+  outfit: "Look",
+  inspo: "Inspo",
+  trip: "Packing list",
+};
+
+const KIND_GLYPH: Record<TrashEntry["kind"], string> = {
+  item: "👚",
+  outfit: "✨",
+  inspo: "🖼️",
+  trip: "🧳",
+};
 
 function daysLeft(deletedAt: number) {
   const gone = Math.floor((Date.now() - deletedAt) / 86_400_000);
@@ -53,7 +65,7 @@ export default function TrashSheet({ onClose }: { onClose: () => void }) {
                     />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-lg">
-                      {entry.kind === "inspo" ? "🖼️" : "✨"}
+                      {KIND_GLYPH[entry.kind]}
                     </span>
                   )}
                 </span>

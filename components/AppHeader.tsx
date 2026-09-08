@@ -21,6 +21,7 @@ const TABS = [
   { href: "/", label: "Closet" },
   { href: "/outfits", label: "Outfits" },
   { href: "/inspo", label: "Inspo" },
+  { href: "/plan", label: "Plan" },
   { href: "/insights", label: "Insights" },
 ];
 
@@ -67,7 +68,7 @@ export default function AppHeader({
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors lg:px-4 ${
                   active ? "bg-ink text-bone" : "text-ink-soft hover:text-berry-deep"
                 }`}
               >
