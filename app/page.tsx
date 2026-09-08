@@ -41,13 +41,17 @@ export default function ClosetPage() {
     logWear,
     removeWear,
     seedSample,
+    restoreFromTrash,
   } = useCloset();
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [editing, setEditing] = useState<Editing>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [justWornId, setJustWornId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    undo?: () => Promise<void>;
+  } | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const wornTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,11 +64,15 @@ export default function ClosetPage() {
     };
   }, []);
 
-  const flash = useCallback((message: string) => {
-    setToast(message);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2600);
-  }, []);
+  const flash = useCallback(
+    (message: string, undo?: () => Promise<void>) => {
+      setToast({ message, undo });
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      // An undoable toast has to outlast the moment of realising the mis-tap.
+      toastTimer.current = setTimeout(() => setToast(null), undo ? 7000 : 2600);
+    },
+    [],
+  );
 
   // "/" focuses search, the way every gallery app should behave.
   useEffect(() => {
@@ -244,10 +252,12 @@ export default function ClosetPage() {
           onClose={() => setOpenId(null)}
           onEdit={() => setEditing({ mode: "edit", item: openItem })}
           onDelete={async () => {
-            const name = openItem.name;
+            const { id, name } = openItem;
             setOpenId(null);
-            await deleteItem(openItem.id);
-            flash(`Removed “${name}”.`);
+            await deleteItem(id);
+            flash(`“${name}” moved to Recently deleted.`, () =>
+              restoreFromTrash(id),
+            );
           }}
           onToggleFavorite={() => void toggleFavorite(openItem.id)}
           onToggleArchived={() => void toggleArchived(openItem.id)}
@@ -262,9 +272,23 @@ export default function ClosetPage() {
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] items-center gap-3 sm:bottom-6 -translate-x-1/2 rounded-full bg-ink py-2.5 pl-4 pr-2 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
-          {toast}
+          <span className="truncate">{toast.message}</span>
+          {toast.undo && (
+            <button
+              type="button"
+              onClick={async () => {
+                const undo = toast.undo;
+                setToast(null);
+                if (toastTimer.current) clearTimeout(toastTimer.current);
+                await undo?.();
+              }}
+              className="shrink-0 rounded-full bg-bone/15 px-3 py-1 text-xs font-semibold text-bone transition-colors hover:bg-bone/25"
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
     </div>

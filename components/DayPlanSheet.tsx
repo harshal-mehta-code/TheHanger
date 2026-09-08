@@ -67,7 +67,9 @@ export default function DayPlanSheet({
 
   // You can only have worn something today or earlier.
   const canMarkWorn = Boolean(plan) && date <= todayISO();
-  const hasPlan = Boolean(outfitId) || itemIds.length > 0;
+  // A note on its own is a plan — "dinner with the Shahs" is worth saving
+  // before she has decided what to wear.
+  const hasPlan = Boolean(outfitId) || itemIds.length > 0 || note.trim().length > 0;
 
   async function save() {
     setSaving(true);

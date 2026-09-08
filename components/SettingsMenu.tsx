@@ -25,6 +25,10 @@ interface Props {
 export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
   const {
     items,
+    outfits,
+    inspo,
+    plans,
+    trips,
     exportBackup,
     importBackup,
     seedSample,
@@ -32,6 +36,14 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
     syncState,
     trash,
   } = useCloset();
+  // Both buttons used to key off the piece count alone, so a closet of only
+  // boards or only packing lists could be neither backed up nor emptied.
+  const isEmpty =
+    items.length === 0 &&
+    outfits.length === 0 &&
+    inspo.length === 0 &&
+    plans.length === 0 &&
+    trips.length === 0;
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -193,9 +205,9 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
 
           <MenuItem
             icon={<DownloadIcon className="h-4 w-4" />}
-            label="Back up closet"
+            label="Back up everything"
             hint={backupNote}
-            disabled={items.length === 0 || busy}
+            disabled={isEmpty || busy}
             onClick={async () => {
               await exportBackup();
               markBackedUp();
@@ -208,7 +220,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
           <MenuItem
             icon={<UploadIcon className="h-4 w-4" />}
             label="Restore from backup"
-            hint="Adds to what's already here"
+            hint="Merges into what's already here"
             disabled={busy}
             onClick={() => fileRef.current?.click()}
           />
@@ -256,8 +268,8 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
             <div className="p-2">
               <p className="text-xs leading-relaxed text-muted">
                 {userId
-                  ? "This erases every piece and photo from your account, on all your devices. Back up first if you want them back."
-                  : "This erases every piece and photo on this device. Back up first if you want them back."}
+                  ? "This erases every piece, look, board, plan and packing list from your account, on all your devices — including anything in Recently deleted. Back up first if you want them back."
+                  : "This erases every piece, look, board, plan and packing list on this device — including anything in Recently deleted. Back up first if you want them back."}
               </p>
               <div className="mt-2 flex gap-2">
                 <button
@@ -286,7 +298,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
               label="Empty the closet"
               hint={userId ? "Deletes everything, everywhere" : "Deletes everything on this device"}
               danger
-              disabled={items.length === 0 || busy}
+              disabled={isEmpty || busy}
               onClick={() => setConfirmReset(true)}
             />
           )}

@@ -39,11 +39,7 @@ interface HangerDB extends DBSchema {
    */
   deletions: {
     key: string;
-    value: {
-    id: string;
-    kind: "item" | "outfit" | "inspo" | "trip";
-    deletedAt: number;
-  };
+    value: Tombstone;
   };
   /**
    * Deleted records, kept whole for 30 days. Curating a wardrobe is hours of
@@ -57,8 +53,28 @@ interface HangerDB extends DBSchema {
   };
 }
 
+export type DeletableKind = "item" | "outfit" | "inspo" | "trip" | "plan";
+
+/**
+ * `id` is a composite (`item:<uuid>`, `plan:<date>`) so two kinds can never
+ * collide in one keyPath; `ref` is the value the cloud is actually keyed by.
+ */
+export interface Tombstone {
+  id: string;
+  kind: DeletableKind;
+  ref: string;
+  deletedAt: number;
+}
+
 export type TrashEntry =
-  | { id: string; kind: "item"; record: Item; deletedAt: number }
+  | {
+      id: string;
+      kind: "item";
+      record: Item;
+      deletedAt: number;
+      /** Looks this piece was removed from, so a restore can rejoin them. */
+      outfitIds?: string[];
+    }
   | { id: string; kind: "outfit"; record: Outfit; deletedAt: number }
   | { id: string; kind: "inspo"; record: Inspo; deletedAt: number }
   | { id: string; kind: "trip"; record: Trip; deletedAt: number };
@@ -150,7 +166,10 @@ export async function writeItem(item: Item): Promise<void> {
  * Move a piece to the trash. The photo stays in `images` so a restore brings
  * the whole thing back, not a card with a hole where the picture was.
  */
-export async function trashItem(id: string): Promise<Item | undefined> {
+export async function trashItem(
+  id: string,
+  outfitIds: string[] = [],
+): Promise<Item | undefined> {
   const db = await getDB();
   const item = await db.get("items", id);
   if (!item) return undefined;
@@ -158,7 +177,7 @@ export async function trashItem(id: string): Promise<Item | undefined> {
   await tx.objectStore("items").delete(id);
   await tx
     .objectStore("trash")
-    .put({ id, kind: "item", record: item, deletedAt: Date.now() });
+    .put({ id, kind: "item", record: item, deletedAt: Date.now(), outfitIds });
   await tx.done;
   return item;
 }
@@ -331,17 +350,29 @@ export async function purgeExpiredTrash(): Promise<number> {
 
 /* ---------- tombstones ---------------------------------------------------- */
 
-export async function recordDeletion(
-  id: string,
-  kind: "item" | "outfit" | "inspo" | "trip",
-): Promise<void> {
-  const db = await getDB();
-  await db.put("deletions", { id, kind, deletedAt: Date.now() });
+export function tombstoneKey(kind: DeletableKind, ref: string): string {
+  return `${kind}:${ref}`;
 }
 
-export async function readDeletions() {
+export async function recordDeletion(
+  ref: string,
+  kind: DeletableKind,
+): Promise<void> {
   const db = await getDB();
-  return db.getAll("deletions");
+  await db.put("deletions", {
+    id: tombstoneKey(kind, ref),
+    kind,
+    ref,
+    deletedAt: Date.now(),
+  });
+}
+
+export async function readDeletions(): Promise<Tombstone[]> {
+  const db = await getDB();
+  const all = await db.getAll("deletions");
+  // Tombstones written before the composite key was introduced carry the bare
+  // row id and no `ref`.
+  return all.map((t) => ({ ...t, ref: t.ref ?? t.id }));
 }
 
 export async function clearDeletions(ids: string[]): Promise<void> {
@@ -371,7 +402,7 @@ export async function removeImage(id: string): Promise<void> {
 export async function clearEverything(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(
-    ["items", "images", "outfits", "inspo", "plans", "trips", "deletions", "trash"],
+    ["items", "images", "outfits", "inspo", "plans", "trips", "trash"],
     "readwrite",
   );
   await tx.objectStore("items").clear();
@@ -380,7 +411,6 @@ export async function clearEverything(): Promise<void> {
   await tx.objectStore("inspo").clear();
   await tx.objectStore("plans").clear();
   await tx.objectStore("trips").clear();
-  await tx.objectStore("deletions").clear();
   await tx.objectStore("trash").clear();
   await tx.done;
   for (const url of urlCache.values()) URL.revokeObjectURL(url);
@@ -428,5 +458,23 @@ export function revokeImageUrl(id: string) {
   if (url) {
     URL.revokeObjectURL(url);
     urlCache.delete(id);
+  }
+}
+
+/**
+ * Ask the browser to keep this origin's storage. IndexedDB is the source of
+ * truth here, and without a grant iOS Safari evicts script-writable storage
+ * after roughly seven days without a visit — hours of cataloguing, gone.
+ * Safe to call repeatedly; resolves false where the API doesn't exist.
+ */
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    if (typeof navigator === "undefined" || !navigator.storage?.persist) {
+      return false;
+    }
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch {
+    return false;
   }
 }

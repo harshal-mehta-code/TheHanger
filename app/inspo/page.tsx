@@ -7,6 +7,7 @@ import InspoCard from "@/components/InspoCard";
 import InspoDetail from "@/components/InspoDetail";
 import InspoEditor from "@/components/InspoEditor";
 import ItemDetail from "@/components/ItemDetail";
+import ItemEditor from "@/components/ItemEditor";
 import { HeartIcon, SparkleIcon } from "@/components/Icons";
 import { SEASONS } from "@/lib/taxonomy";
 import { useCloset } from "@/lib/store";
@@ -30,6 +31,7 @@ export default function InspoPage() {
     logWear,
     removeWear,
     deleteItem,
+    updateItem,
   } = useCloset();
 
   const [search, setSearch] = useState("");
@@ -38,6 +40,7 @@ export default function InspoPage() {
   const [editing, setEditing] = useState<Editing>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openPieceId, setOpenPieceId] = useState<string | null>(null);
+  const [editingPiece, setEditingPiece] = useState<Item | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -218,11 +221,11 @@ export default function InspoPage() {
         />
       )}
 
-      {openPiece && (
+      {openPiece && !editingPiece && (
         <ItemDetail
           item={openPiece}
           onClose={() => setOpenPieceId(null)}
-          onEdit={() => setOpenPieceId(null)}
+          onEdit={() => setEditingPiece(openPiece)}
           onDelete={async () => {
             setOpenPieceId(null);
             await deleteItem(openPiece.id);
@@ -232,6 +235,21 @@ export default function InspoPage() {
           onSetStatus={(status) => void setStatus(openPiece.id, status)}
           onLogWear={(date) => void logWear(openPiece.id, date)}
           onRemoveWear={(date) => void removeWear(openPiece.id, date)}
+        />
+      )}
+
+      {/* Editing a piece from here opens the closet's own editor, rather than
+          bouncing her back to the closet to find it again. */}
+      {editingPiece && (
+        <ItemEditor
+          item={editingPiece}
+          knownBrands={facets.brands}
+          knownTags={facets.tags}
+          usedLocations={facets.locations}
+          onClose={() => setEditingPiece(null)}
+          onSave={async (draft, photo) => {
+            await updateItem(editingPiece.id, draft, photo);
+          }}
         />
       )}
 

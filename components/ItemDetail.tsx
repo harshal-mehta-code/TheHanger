@@ -80,7 +80,8 @@ export default function ItemDetail({
         confirmingDelete ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium">
-              Delete “{item.name}” for good?
+              Move “{item.name}” to Recently deleted? You can restore
+              it for 30 days.
             </p>
             <div className="flex gap-2">
               <button

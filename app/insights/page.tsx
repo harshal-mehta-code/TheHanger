@@ -5,12 +5,18 @@ import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import ItemDetail from "@/components/ItemDetail";
+import ItemEditor from "@/components/ItemEditor";
 import ItemPhoto from "@/components/ItemPhoto";
 import { HangerMark } from "@/components/Icons";
 import { CATEGORIES, CATEGORY_LABEL, STATUS_BY_ID } from "@/lib/taxonomy";
 import { useCloset } from "@/lib/store";
 import type { Item } from "@/lib/types";
-import { costPerWear, daysSinceWorn, formatLastWorn } from "@/lib/wardrobe";
+import {
+  collectFacets,
+  costPerWear,
+  daysSinceWorn,
+  formatLastWorn,
+} from "@/lib/wardrobe";
 
 const MONTHS = 6;
 
@@ -25,9 +31,11 @@ export default function InsightsPage() {
     logWear,
     removeWear,
     deleteItem,
+    updateItem,
   } = useCloset();
 
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingPiece, setEditingPiece] = useState<Item | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,6 +124,7 @@ export default function InsightsPage() {
   }, [closet]);
 
   const openItem = openId ? items.find((i) => i.id === openId) ?? null : null;
+  const facets = useMemo(() => collectFacets(items), [items]);
   const peakMonth = Math.max(1, ...data.months.map((m) => m.count));
 
   return (
@@ -341,11 +350,11 @@ export default function InsightsPage() {
         </div>
       )}
 
-      {openItem && (
+      {openItem && !editingPiece && (
         <ItemDetail
           item={openItem}
           onClose={() => setOpenId(null)}
-          onEdit={() => setOpenId(null)}
+          onEdit={() => setEditingPiece(openItem)}
           onDelete={async () => {
             setOpenId(null);
             await deleteItem(openItem.id);
@@ -355,6 +364,21 @@ export default function InsightsPage() {
           onSetStatus={(status) => void setStatus(openItem.id, status)}
           onLogWear={(date) => void logWear(openItem.id, date)}
           onRemoveWear={(date) => void removeWear(openItem.id, date)}
+        />
+      )}
+
+      {/* Editing a piece from here opens the closet's own editor, rather than
+          bouncing her back to the closet to find it again. */}
+      {editingPiece && (
+        <ItemEditor
+          item={editingPiece}
+          knownBrands={facets.brands}
+          knownTags={facets.tags}
+          usedLocations={facets.locations}
+          onClose={() => setEditingPiece(null)}
+          onSave={async (draft, photo) => {
+            await updateItem(editingPiece.id, draft, photo);
+          }}
         />
       )}
 

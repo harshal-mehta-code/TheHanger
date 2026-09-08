@@ -156,6 +156,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    void db.requestPersistentStorage();
     db.purgeExpiredTrash()
       .catch(() => 0)
       .then(() =>
@@ -283,17 +284,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   const deleteItem = useCallback(
     async (id: string) => {
       const doomed = items.find((i) => i.id === id);
+      // An outfit must not keep pointing at a piece that no longer exists —
+      // but the trash entry records which looks it left, so restoring puts it
+      // back into them instead of silently shortening every one.
+      const affected = outfits.filter((o) => o.itemIds.includes(id));
       await db.recordDeletion(id, "item");
-      await db.trashItem(id);
+      await db.trashItem(id, affected.map((o) => o.id));
       setItems((prev) => prev.filter((i) => i.id !== id));
       setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "item", id, doomed?.imageId ? [doomed.imageId] : []);
-        await db.clearDeletions([id]);
+        await db.clearDeletions([db.tombstoneKey("item", id)]);
       });
 
-      // An outfit must not keep pointing at a piece that no longer exists.
-      const affected = outfits.filter((o) => o.itemIds.includes(id));
       if (affected.length) {
         const updated = affected.map((o) => ({
           ...o,
@@ -409,7 +412,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "outfit", id);
-        await db.clearDeletions([id]);
+        await db.clearDeletions([db.tombstoneKey("outfit", id)]);
       });
     },
     [mirror],
@@ -540,7 +543,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "inspo", id, doomed?.imageIds ?? []);
-        await db.clearDeletions([id]);
+        await db.clearDeletions([db.tombstoneKey("inspo", id)]);
       });
     },
     [inspo, mirror],
@@ -564,6 +567,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
 
   /* ---------------- planning ---------------- */
 
+  const clearDayPlan = useCallback(
+    async (date: string) => {
+      await db.recordDeletion(date, "plan");
+      await db.removePlan(date);
+      setPlans((prev) => prev.filter((p) => p.date !== date));
+      mirror(async (sb, uid) => {
+        await pushDeletion(sb, uid, "plan", date);
+        await db.clearDeletions([db.tombstoneKey("plan", date)]);
+      });
+    },
+    [mirror],
+  );
+
   const setDayPlan = useCallback(
     async (
       date: string,
@@ -571,26 +587,18 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     ) => {
       // An empty plan is a cleared day, not a blank record to keep around.
       if (!plan.outfitId && plan.itemIds.length === 0 && !plan.note?.trim()) {
-        await db.removePlan(date);
-        setPlans((prev) => prev.filter((p) => p.date !== date));
-        mirror((sb, uid) => pushDeletion(sb, uid, "plan", date));
+        await clearDayPlan(date);
         return;
       }
+      // Re-planning a day she had cleared: drop the pending tombstone so the
+      // next sync doesn't spend a round trip deleting and reviving the row.
+      await db.clearDeletions([db.tombstoneKey("plan", date)]);
       const next: DayPlan = { date, ...plan, updatedAt: Date.now() };
       await db.writePlan(next);
       setPlans((prev) => [...prev.filter((p) => p.date !== date), next]);
       mirror((sb, uid) => pushPlan(sb, uid, next));
     },
-    [mirror],
-  );
-
-  const clearDayPlan = useCallback(
-    async (date: string) => {
-      await db.removePlan(date);
-      setPlans((prev) => prev.filter((p) => p.date !== date));
-      mirror((sb, uid) => pushDeletion(sb, uid, "plan", date));
-    },
-    [mirror],
+    [mirror, clearDayPlan],
   );
 
   const addTrip = useCallback(
@@ -631,7 +639,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       setTrash(await db.readTrash());
       mirror(async (sb, uid) => {
         await pushDeletion(sb, uid, "trip", id);
-        await db.clearDeletions([id]);
+        await db.clearDeletions([db.tombstoneKey("trip", id)]);
       });
     },
     [mirror],
@@ -658,9 +666,12 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
   /* ---------------- backup ---------------- */
 
   const exportBackup = useCallback(async () => {
+    // Everything, not just pieces and looks: a backup that quietly omits the
+    // boards and the packing lists is worse than no backup, because it is
+    // trusted.
     const payload = {
       app: "the-hanger",
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       items: await Promise.all(
         items.map(async (item) => {
@@ -675,6 +686,22 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         }),
       ),
       outfits,
+      inspo: await Promise.all(
+        inspo.map(async (board) => ({
+          ...board,
+          imageIds: undefined,
+          images: (
+            await Promise.all(
+              board.imageIds.map(async (imageId) => {
+                const blob = await db.readImage(imageId);
+                return blob ? await blobToDataUrl(blob) : null;
+              }),
+            )
+          ).filter((x): x is string => Boolean(x)),
+        })),
+      ),
+      plans,
+      trips,
     };
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(payload)], { type: "application/json" }),
@@ -682,9 +709,16 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     const a = document.createElement("a");
     a.href = url;
     a.download = `the-hanger-backup-${todayISO()}.json`;
+    // Safari ignores a click on an anchor that isn't in the document, and
+    // revoking the URL in the same tick cancels the download it just started.
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-  }, [items, outfits]);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 10_000);
+  }, [items, outfits, inspo, plans, trips]);
 
   const importBackup = useCallback(async (file: File) => {
     const parsed = JSON.parse(await file.text());
@@ -695,6 +729,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     // Everything is re-keyed on import so a backup can be merged into a
     // closet that already has pieces; outfits follow the same remapping.
     const idMap = new Map<string, string>();
+    const outfitIdMap = new Map<string, string>();
     const restored: Item[] = [];
     for (const raw of parsed.items) {
       const now = Date.now();
@@ -711,6 +746,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         brand: raw.brand,
         color: raw.color,
         size: raw.size,
+        location: raw.location,
         seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
         formality: raw.formality,
         tags: Array.isArray(raw.tags) ? raw.tags : [],
@@ -765,14 +801,98 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now,
       };
       await db.writeOutfit(outfit);
+      if (typeof raw.id === "string") outfitIdMap.set(raw.id, outfit.id);
       restoredOutfits.push(outfit);
     }
     if (restoredOutfits.length) {
       setOutfits((prev) => [...prev, ...restoredOutfits]);
     }
 
+    // Pieces and looks are re-keyed on the way in, so everything that points
+    // at them has to be remapped through the same two maps.
+    const mapItems = (raw: unknown): string[] =>
+      (Array.isArray(raw) ? raw : [])
+        .map((old: unknown) => (typeof old === "string" ? idMap.get(old) : undefined))
+        .filter((id: string | undefined): id is string => Boolean(id));
+
+    const restoredInspo: Inspo[] = [];
+    for (const raw of Array.isArray(parsed.inspo) ? parsed.inspo : []) {
+      const now = Date.now();
+      const imageIds: string[] = [];
+      for (const image of Array.isArray(raw.images) ? raw.images : []) {
+        if (typeof image !== "string" || !image.startsWith("data:")) continue;
+        const imageId = newId();
+        await db.writeImage(imageId, await dataUrlToBlob(image));
+        imageIds.push(imageId);
+      }
+      const board: Inspo = {
+        id: newId(),
+        title: String(raw.title ?? "Untitled"),
+        note: raw.note,
+        sourceUrl: raw.sourceUrl,
+        imageIds,
+        itemIds: mapItems(raw.itemIds),
+        tags: Array.isArray(raw.tags) ? raw.tags : [],
+        seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
+        favorite: Boolean(raw.favorite),
+        createdAt: typeof raw.createdAt === "number" ? raw.createdAt : now,
+        updatedAt: now,
+      };
+      await db.writeInspo(board);
+      restoredInspo.push(board);
+    }
+    if (restoredInspo.length) setInspo((prev) => [...prev, ...restoredInspo]);
+
+    const restoredTrips: Trip[] = [];
+    for (const raw of Array.isArray(parsed.trips) ? parsed.trips : []) {
+      const now = Date.now();
+      const itemIds = mapItems(raw.itemIds);
+      const outfitIds = (Array.isArray(raw.outfitIds) ? raw.outfitIds : [])
+        .map((old: unknown) =>
+          typeof old === "string" ? outfitIdMap.get(old) : undefined,
+        )
+        .filter((id: string | undefined): id is string => Boolean(id));
+      const trip: Trip = {
+        id: newId(),
+        name: String(raw.name ?? "Trip"),
+        destination: raw.destination,
+        startDate: raw.startDate,
+        endDate: raw.endDate,
+        notes: raw.notes,
+        outfitIds,
+        itemIds,
+        packed: mapItems(raw.packed),
+        createdAt: typeof raw.createdAt === "number" ? raw.createdAt : now,
+        updatedAt: now,
+      };
+      await db.writeTrip(trip);
+      restoredTrips.push(trip);
+    }
+    if (restoredTrips.length) setTrips((prev) => [...prev, ...restoredTrips]);
+
+    // A day is keyed by its date, so an incoming plan must not overwrite one
+    // already on the calendar — a merge should never cost the closet a day.
+    const existingDates = new Set(plans.map((p) => p.date));
+    const restoredPlans: DayPlan[] = [];
+    for (const raw of Array.isArray(parsed.plans) ? parsed.plans : []) {
+      if (typeof raw.date !== "string" || existingDates.has(raw.date)) continue;
+      const outfitId =
+        typeof raw.outfitId === "string" ? outfitIdMap.get(raw.outfitId) : undefined;
+      const plan: DayPlan = {
+        date: raw.date,
+        outfitId,
+        itemIds: mapItems(raw.itemIds),
+        note: raw.note,
+        updatedAt: Date.now(),
+      };
+      if (!plan.outfitId && plan.itemIds.length === 0 && !plan.note) continue;
+      await db.writePlan(plan);
+      restoredPlans.push(plan);
+    }
+    if (restoredPlans.length) setPlans((prev) => [...prev, ...restoredPlans]);
+
     return restored.length;
-  }, []);
+  }, [plans]);
 
   const seedSample = useCallback(async () => {
     const now = Date.now();
@@ -823,13 +943,35 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       const entry = await db.restoreFromTrash(id);
       if (!entry) return;
-      // Restoring has to beat the tombstone, both locally and in the cloud.
-      await db.clearDeletions([id]);
+      // Restoring has to beat the tombstone. Locally that means dropping it;
+      // in the cloud the revived record's fresh `updatedAt` outranks the
+      // recorded `deleted_at`, so the next sync revives the row even if the
+      // push below never lands.
+      await db.clearDeletions([db.tombstoneKey(entry.kind, id)]);
       if (entry.kind === "item") {
         const revived = { ...entry.record, updatedAt: Date.now() };
         await db.writeItem(revived);
         setItems((prev) => [...prev.filter((i) => i.id !== id), revived]);
         mirror((sb, uid) => pushItem(sb, uid, revived));
+
+        // Deleting stripped this piece out of its looks; putting it back is
+        // the other half of the restore.
+        const rejoin = (entry.outfitIds ?? [])
+          .map((oid) => outfits.find((o) => o.id === oid))
+          .filter((o): o is Outfit => Boolean(o))
+          .filter((o) => !o.itemIds.includes(id))
+          .map((o) => ({
+            ...o,
+            itemIds: [...o.itemIds, id],
+            updatedAt: Date.now(),
+          }));
+        if (rejoin.length) {
+          for (const o of rejoin) await db.writeOutfit(o);
+          setOutfits((prev) =>
+            prev.map((o) => rejoin.find((r) => r.id === o.id) ?? o),
+          );
+          for (const o of rejoin) mirror((sb, uid) => pushOutfit(sb, uid, o));
+        }
       } else if (entry.kind === "outfit") {
         const revived = { ...entry.record, updatedAt: Date.now() };
         await db.writeOutfit(revived);
@@ -848,7 +990,7 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
       }
       setTrash(await db.readTrash());
     },
-    [mirror],
+    [mirror, outfits],
   );
 
   const purgeTrashEntry = useCallback(async (id: string) => {
@@ -914,6 +1056,19 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     // device — otherwise the next sync pulls the whole wardrobe back.
     const doomedItems = items.map((i) => ({ id: i.id, imageId: i.imageId }));
     const doomedOutfits = outfits.map((o) => o.id);
+    const doomedInspo = inspo.map((x) => ({ id: x.id, imageIds: x.imageIds }));
+    const doomedPlans = plans.map((p) => p.date);
+    const doomedTrips = trips.map((t) => t.id);
+
+    // Tombstones first, and every kind of them. The push below is best-effort;
+    // if the tab closes before it finishes, these are what stop the next sync
+    // downloading the whole wardrobe she just erased. `clearEverything` leaves
+    // the tombstone store alone precisely so this survives.
+    for (const { id } of doomedItems) await db.recordDeletion(id, "item");
+    for (const id of doomedOutfits) await db.recordDeletion(id, "outfit");
+    for (const { id } of doomedInspo) await db.recordDeletion(id, "inspo");
+    for (const date of doomedPlans) await db.recordDeletion(date, "plan");
+    for (const id of doomedTrips) await db.recordDeletion(id, "trip");
 
     await db.clearEverything();
     setItems([]);
@@ -924,14 +1079,30 @@ export function ClosetProvider({ children }: { children: React.ReactNode }) {
     setTrash([]);
 
     mirror(async (sb, uid) => {
+      const done: string[] = [];
       for (const { id, imageId } of doomedItems) {
         await pushDeletion(sb, uid, "item", id, imageId ? [imageId] : []);
+        done.push(db.tombstoneKey("item", id));
       }
       for (const id of doomedOutfits) {
         await pushDeletion(sb, uid, "outfit", id);
+        done.push(db.tombstoneKey("outfit", id));
       }
+      for (const { id, imageIds } of doomedInspo) {
+        await pushDeletion(sb, uid, "inspo", id, imageIds);
+        done.push(db.tombstoneKey("inspo", id));
+      }
+      for (const date of doomedPlans) {
+        await pushDeletion(sb, uid, "plan", date);
+        done.push(db.tombstoneKey("plan", date));
+      }
+      for (const id of doomedTrips) {
+        await pushDeletion(sb, uid, "trip", id);
+        done.push(db.tombstoneKey("trip", id));
+      }
+      await db.clearDeletions(done);
     });
-  }, [items, outfits, mirror]);
+  }, [items, outfits, inspo, plans, trips, mirror]);
 
   const value = useMemo<ClosetContextValue>(
     () => ({

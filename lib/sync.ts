@@ -252,6 +252,25 @@ async function deletePhoto(
 
 /* ---------------------------------------------------------------- sync */
 
+/** The moment a row was soft-deleted in the cloud, or null if it is live. */
+function remoteDeletedAt(row: Row | undefined): number | null {
+  if (!row?.deleted_at) return null;
+  const at = new Date(String(row.deleted_at)).getTime();
+  return Number.isNaN(at) ? Date.now() : at;
+}
+
+/**
+ * Decide what a cloud tombstone means for the copy we hold locally.
+ *
+ * A delete is a fact with a timestamp like any other, so it only wins if it is
+ * newer than the local record. That is what makes restore-from-trash safe: a
+ * revived record carries a fresh `updatedAt`, so it beats the tombstone and is
+ * pushed back up even when the restore itself never reached the cloud.
+ */
+function deletionWins(localUpdatedAt: number, deletedAt: number): boolean {
+  return deletedAt >= localUpdatedAt;
+}
+
 /**
  * Reconcile this device with the cloud in both directions.
  *
@@ -265,6 +284,19 @@ export async function syncAll(
   let pulled = 0;
   let pushed = 0;
 
+  // One missing or unreachable table must not stop the other four. Before
+  // this, a schema that lagged a release froze sync everywhere at once.
+  const failures: string[] = [];
+  const section = async (name: string, run: () => Promise<void>) => {
+    try {
+      await run();
+    } catch (err) {
+      failures.push(
+        `${name} (${err instanceof Error ? err.message : String(err)})`,
+      );
+    }
+  };
+
   /* --- deletions first, so a tombstone isn't undone by our own push --- */
   const tombstones = await db.readDeletions();
   const sent: string[] = [];
@@ -272,239 +304,288 @@ export async function syncAll(
     const { error } = await supabase
       .from(TABLE[t.kind])
       .update({ deleted_at: new Date(t.deletedAt).toISOString() })
-      .eq("id", t.id)
+      // Plans are keyed by date rather than an id column.
+      .eq(t.kind === "plan" ? "date" : "id", t.ref)
       .eq("user_id", userId);
     if (!error) sent.push(t.id);
   }
   await db.clearDeletions(sent);
 
   /* --- items --- */
-  const [localItems, localOutfits] = await Promise.all([
-    db.readAllItems(),
-    db.readAllOutfits(),
-  ]);
+  await section("pieces", async () => {
+    const localItems = await db.readAllItems();
+    const { data: itemRows, error: itemErr } = await supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", userId);
+    if (itemErr) throw itemErr;
 
-  const { data: itemRows, error: itemErr } = await supabase
-    .from("items")
-    .select("*")
-    .eq("user_id", userId);
-  if (itemErr) throw itemErr;
+    const remoteItems = new Map<string, Row>(
+      (itemRows ?? []).map((r: Row) => [String(r.id), r]),
+    );
+    const localById = new Map(localItems.map((i) => [i.id, i]));
 
-  const remoteItems = new Map<string, Row>(
-    (itemRows ?? []).map((r: Row) => [String(r.id), r]),
-  );
-  const localById = new Map(localItems.map((i) => [i.id, i]));
-
-  const toUpsert: Row[] = [];
-  for (const item of localItems) {
-    const remote = remoteItems.get(item.id);
-    if (remote?.deleted_at) {
-      // Deleted elsewhere — honour it here.
-      await db.removeItem(item.id);
-      continue;
+    const toUpsert: Row[] = [];
+    for (const item of localItems) {
+      const remote = remoteItems.get(item.id);
+      const deletedAt = remoteDeletedAt(remote);
+      if (deletedAt !== null) {
+        if (deletionWins(item.updatedAt, deletedAt)) {
+          // Deleted elsewhere, and we hold nothing newer. Route it through the
+          // trash rather than erasing it, so the 30-day net covers this device
+          // too — the machine where the tap happened shouldn't be the only way
+          // back.
+          await db.trashItem(item.id);
+        } else {
+          // Revived or edited here after the delete: ours is the newer fact,
+          // and `deleted_at: null` in the pushed row clears the tombstone.
+          toUpsert.push(itemToRow(item, userId));
+          if (item.imageId) await pushPhoto(supabase, userId, item.imageId);
+        }
+        continue;
+      }
+      const remoteUpdated = remote
+        ? new Date(String(remote.updated_at)).getTime()
+        : -1;
+      if (item.updatedAt > remoteUpdated) {
+        toUpsert.push(itemToRow(item, userId));
+        if (item.imageId) await pushPhoto(supabase, userId, item.imageId);
+      }
     }
-    const remoteUpdated = remote
-      ? new Date(String(remote.updated_at)).getTime()
-      : -1;
-    if (item.updatedAt > remoteUpdated) {
-      toUpsert.push(itemToRow(item, userId));
-      if (item.imageId) await pushPhoto(supabase, userId, item.imageId);
-    }
-  }
 
-  for (const [id, row] of remoteItems) {
-    if (row.deleted_at) continue;
-    const local = localById.get(id);
-    const remoteUpdated = new Date(String(row.updated_at)).getTime();
-    if (!local || remoteUpdated > local.updatedAt) {
-      const item = rowToItem(row);
-      if (item.imageId) await pullPhoto(supabase, userId, item.imageId);
-      await db.writeItem(item);
-      pulled++;
+    for (const [id, row] of remoteItems) {
+      if (row.deleted_at) continue;
+      const local = localById.get(id);
+      const remoteUpdated = new Date(String(row.updated_at)).getTime();
+      if (!local || remoteUpdated > local.updatedAt) {
+        const item = rowToItem(row);
+        if (item.imageId) await pullPhoto(supabase, userId, item.imageId);
+        await db.writeItem(item);
+        pulled++;
+      }
     }
-  }
 
-  if (toUpsert.length) {
-    const { error } = await supabase.from("items").upsert(toUpsert);
-    if (error) throw error;
-    pushed += toUpsert.length;
-  }
+    if (toUpsert.length) {
+      const { error } = await supabase.from("items").upsert(toUpsert);
+      if (error) throw error;
+      pushed += toUpsert.length;
+    }
+  });
 
   /* --- inspo --- */
-  const localInspo = await db.readAllInspo();
-  const { data: inspoRows, error: inspoErr } = await supabase
-    .from("inspo")
-    .select("*")
-    .eq("user_id", userId);
-  if (inspoErr) throw inspoErr;
+  await section("inspiration boards", async () => {
+    const localInspo = await db.readAllInspo();
+    const { data: inspoRows, error: inspoErr } = await supabase
+      .from("inspo")
+      .select("*")
+      .eq("user_id", userId);
+    if (inspoErr) throw inspoErr;
 
-  const remoteInspo = new Map<string, Row>(
-    (inspoRows ?? []).map((r: Row) => [String(r.id), r]),
-  );
-  const localInspoById = new Map(localInspo.map((x) => [x.id, x]));
+    const remoteInspo = new Map<string, Row>(
+      (inspoRows ?? []).map((r: Row) => [String(r.id), r]),
+    );
+    const localInspoById = new Map(localInspo.map((x) => [x.id, x]));
 
-  const inspoUpserts: Row[] = [];
-  for (const board of localInspo) {
-    const remote = remoteInspo.get(board.id);
-    if (remote?.deleted_at) {
-      await db.removeInspo(board.id);
-      continue;
-    }
-    const remoteUpdated = remote
-      ? new Date(String(remote.updated_at)).getTime()
-      : -1;
-    if (board.updatedAt > remoteUpdated) {
-      inspoUpserts.push(inspoToRow(board, userId));
-      for (const imageId of board.imageIds) {
-        await pushPhoto(supabase, userId, imageId);
+    const inspoUpserts: Row[] = [];
+    for (const board of localInspo) {
+      const remote = remoteInspo.get(board.id);
+      const deletedAt = remoteDeletedAt(remote);
+      if (deletedAt !== null) {
+        if (deletionWins(board.updatedAt, deletedAt)) {
+          await db.trashInspo(board.id);
+        } else {
+          inspoUpserts.push(inspoToRow(board, userId));
+          for (const imageId of board.imageIds) {
+            await pushPhoto(supabase, userId, imageId);
+          }
+        }
+        continue;
+      }
+      const remoteUpdated = remote
+        ? new Date(String(remote.updated_at)).getTime()
+        : -1;
+      if (board.updatedAt > remoteUpdated) {
+        inspoUpserts.push(inspoToRow(board, userId));
+        for (const imageId of board.imageIds) {
+          await pushPhoto(supabase, userId, imageId);
+        }
       }
     }
-  }
 
-  for (const [id, row] of remoteInspo) {
-    if (row.deleted_at) continue;
-    const local = localInspoById.get(id);
-    const remoteUpdated = new Date(String(row.updated_at)).getTime();
-    if (!local || remoteUpdated > local.updatedAt) {
-      const board = rowToInspo(row);
-      for (const imageId of board.imageIds) {
-        await pullPhoto(supabase, userId, imageId);
+    for (const [id, row] of remoteInspo) {
+      if (row.deleted_at) continue;
+      const local = localInspoById.get(id);
+      const remoteUpdated = new Date(String(row.updated_at)).getTime();
+      if (!local || remoteUpdated > local.updatedAt) {
+        const board = rowToInspo(row);
+        for (const imageId of board.imageIds) {
+          await pullPhoto(supabase, userId, imageId);
+        }
+        await db.writeInspo(board);
+        pulled++;
       }
-      await db.writeInspo(board);
-      pulled++;
     }
-  }
 
-  if (inspoUpserts.length) {
-    const { error } = await supabase.from("inspo").upsert(inspoUpserts);
-    if (error) throw error;
-    pushed += inspoUpserts.length;
-  }
+    if (inspoUpserts.length) {
+      const { error } = await supabase.from("inspo").upsert(inspoUpserts);
+      if (error) throw error;
+      pushed += inspoUpserts.length;
+    }
+  });
 
   /* --- outfits --- */
-  const { data: outfitRows, error: outfitErr } = await supabase
-    .from("outfits")
-    .select("*")
-    .eq("user_id", userId);
-  if (outfitErr) throw outfitErr;
+  await section("looks", async () => {
+    const localOutfits = await db.readAllOutfits();
+    const { data: outfitRows, error: outfitErr } = await supabase
+      .from("outfits")
+      .select("*")
+      .eq("user_id", userId);
+    if (outfitErr) throw outfitErr;
 
-  const remoteOutfits = new Map<string, Row>(
-    (outfitRows ?? []).map((r: Row) => [String(r.id), r]),
-  );
-  const localOutfitsById = new Map(localOutfits.map((o) => [o.id, o]));
+    const remoteOutfits = new Map<string, Row>(
+      (outfitRows ?? []).map((r: Row) => [String(r.id), r]),
+    );
+    const localOutfitsById = new Map(localOutfits.map((o) => [o.id, o]));
 
-  const outfitUpserts: Row[] = [];
-  for (const outfit of localOutfits) {
-    const remote = remoteOutfits.get(outfit.id);
-    if (remote?.deleted_at) {
-      await db.removeOutfit(outfit.id);
-      continue;
+    const outfitUpserts: Row[] = [];
+    for (const outfit of localOutfits) {
+      const remote = remoteOutfits.get(outfit.id);
+      const deletedAt = remoteDeletedAt(remote);
+      if (deletedAt !== null) {
+        if (deletionWins(outfit.updatedAt, deletedAt)) {
+          await db.trashOutfit(outfit.id);
+        } else {
+          outfitUpserts.push(outfitToRow(outfit, userId));
+        }
+        continue;
+      }
+      const remoteUpdated = remote
+        ? new Date(String(remote.updated_at)).getTime()
+        : -1;
+      if (outfit.updatedAt > remoteUpdated) {
+        outfitUpserts.push(outfitToRow(outfit, userId));
+      }
     }
-    const remoteUpdated = remote
-      ? new Date(String(remote.updated_at)).getTime()
-      : -1;
-    if (outfit.updatedAt > remoteUpdated) {
-      outfitUpserts.push(outfitToRow(outfit, userId));
-    }
-  }
 
-  for (const [id, row] of remoteOutfits) {
-    if (row.deleted_at) continue;
-    const local = localOutfitsById.get(id);
-    const remoteUpdated = new Date(String(row.updated_at)).getTime();
-    if (!local || remoteUpdated > local.updatedAt) {
-      await db.writeOutfit(rowToOutfit(row));
-      pulled++;
+    for (const [id, row] of remoteOutfits) {
+      if (row.deleted_at) continue;
+      const local = localOutfitsById.get(id);
+      const remoteUpdated = new Date(String(row.updated_at)).getTime();
+      if (!local || remoteUpdated > local.updatedAt) {
+        await db.writeOutfit(rowToOutfit(row));
+        pulled++;
+      }
     }
-  }
 
-  if (outfitUpserts.length) {
-    const { error } = await supabase.from("outfits").upsert(outfitUpserts);
-    if (error) throw error;
-    pushed += outfitUpserts.length;
-  }
+    if (outfitUpserts.length) {
+      const { error } = await supabase.from("outfits").upsert(outfitUpserts);
+      if (error) throw error;
+      pushed += outfitUpserts.length;
+    }
+  });
 
   /* --- plans --- */
-  const localPlans = await db.readAllPlans();
-  const { data: planRows, error: planErr } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("user_id", userId);
-  if (planErr) throw planErr;
-
-  const remotePlans = new Map<string, Row>(
-    (planRows ?? []).map((r: Row) => [String(r.date), r]),
-  );
-  const localPlansByDate = new Map(localPlans.map((p) => [p.date, p]));
-
-  const planUpserts: Row[] = [];
-  for (const plan of localPlans) {
-    const remote = remotePlans.get(plan.date);
-    if (remote?.deleted_at) {
-      await db.removePlan(plan.date);
-      continue;
-    }
-    const remoteUpdated = remote
-      ? new Date(String(remote.updated_at)).getTime()
-      : -1;
-    if (plan.updatedAt > remoteUpdated) planUpserts.push(planToRow(plan, userId));
-  }
-  for (const [date, row] of remotePlans) {
-    if (row.deleted_at) continue;
-    const local = localPlansByDate.get(date);
-    const remoteUpdated = new Date(String(row.updated_at)).getTime();
-    if (!local || remoteUpdated > local.updatedAt) {
-      await db.writePlan(rowToPlan(row));
-      pulled++;
-    }
-  }
-  if (planUpserts.length) {
-    const { error } = await supabase
+  await section("the calendar", async () => {
+    const localPlans = await db.readAllPlans();
+    const { data: planRows, error: planErr } = await supabase
       .from("plans")
-      .upsert(planUpserts, { onConflict: "user_id,date" });
-    if (error) throw error;
-    pushed += planUpserts.length;
-  }
+      .select("*")
+      .eq("user_id", userId);
+    if (planErr) throw planErr;
+
+    const remotePlans = new Map<string, Row>(
+      (planRows ?? []).map((r: Row) => [String(r.date), r]),
+    );
+    const localPlansByDate = new Map(localPlans.map((p) => [p.date, p]));
+
+    const planUpserts: Row[] = [];
+    for (const plan of localPlans) {
+      const remote = remotePlans.get(plan.date);
+      const deletedAt = remoteDeletedAt(remote);
+      if (deletedAt !== null) {
+        // A day has no trash of its own — it is one line, cheap to re-enter.
+        if (deletionWins(plan.updatedAt, deletedAt)) {
+          await db.removePlan(plan.date);
+        } else {
+          planUpserts.push(planToRow(plan, userId));
+        }
+        continue;
+      }
+      const remoteUpdated = remote
+        ? new Date(String(remote.updated_at)).getTime()
+        : -1;
+      if (plan.updatedAt > remoteUpdated) {
+        planUpserts.push(planToRow(plan, userId));
+      }
+    }
+    for (const [date, row] of remotePlans) {
+      if (row.deleted_at) continue;
+      const local = localPlansByDate.get(date);
+      const remoteUpdated = new Date(String(row.updated_at)).getTime();
+      if (!local || remoteUpdated > local.updatedAt) {
+        await db.writePlan(rowToPlan(row));
+        pulled++;
+      }
+    }
+    if (planUpserts.length) {
+      const { error } = await supabase
+        .from("plans")
+        .upsert(planUpserts, { onConflict: "user_id,date" });
+      if (error) throw error;
+      pushed += planUpserts.length;
+    }
+  });
 
   /* --- trips --- */
-  const localTrips = await db.readAllTrips();
-  const { data: tripRows, error: tripErr } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("user_id", userId);
-  if (tripErr) throw tripErr;
+  await section("packing lists", async () => {
+    const localTrips = await db.readAllTrips();
+    const { data: tripRows, error: tripErr } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("user_id", userId);
+    if (tripErr) throw tripErr;
 
-  const remoteTrips = new Map<string, Row>(
-    (tripRows ?? []).map((r: Row) => [String(r.id), r]),
-  );
-  const localTripsById = new Map(localTrips.map((t) => [t.id, t]));
+    const remoteTrips = new Map<string, Row>(
+      (tripRows ?? []).map((r: Row) => [String(r.id), r]),
+    );
+    const localTripsById = new Map(localTrips.map((t) => [t.id, t]));
 
-  const tripUpserts: Row[] = [];
-  for (const trip of localTrips) {
-    const remote = remoteTrips.get(trip.id);
-    if (remote?.deleted_at) {
-      await db.removeTrip(trip.id);
-      continue;
+    const tripUpserts: Row[] = [];
+    for (const trip of localTrips) {
+      const remote = remoteTrips.get(trip.id);
+      const deletedAt = remoteDeletedAt(remote);
+      if (deletedAt !== null) {
+        if (deletionWins(trip.updatedAt, deletedAt)) {
+          await db.trashTrip(trip.id);
+        } else {
+          tripUpserts.push(tripToRow(trip, userId));
+        }
+        continue;
+      }
+      const remoteUpdated = remote
+        ? new Date(String(remote.updated_at)).getTime()
+        : -1;
+      if (trip.updatedAt > remoteUpdated) {
+        tripUpserts.push(tripToRow(trip, userId));
+      }
     }
-    const remoteUpdated = remote
-      ? new Date(String(remote.updated_at)).getTime()
-      : -1;
-    if (trip.updatedAt > remoteUpdated) tripUpserts.push(tripToRow(trip, userId));
-  }
-  for (const [id, row] of remoteTrips) {
-    if (row.deleted_at) continue;
-    const local = localTripsById.get(id);
-    const remoteUpdated = new Date(String(row.updated_at)).getTime();
-    if (!local || remoteUpdated > local.updatedAt) {
-      await db.writeTrip(rowToTrip(row));
-      pulled++;
+    for (const [id, row] of remoteTrips) {
+      if (row.deleted_at) continue;
+      const local = localTripsById.get(id);
+      const remoteUpdated = new Date(String(row.updated_at)).getTime();
+      if (!local || remoteUpdated > local.updatedAt) {
+        await db.writeTrip(rowToTrip(row));
+        pulled++;
+      }
     }
-  }
-  if (tripUpserts.length) {
-    const { error } = await supabase.from("trips").upsert(tripUpserts);
-    if (error) throw error;
-    pushed += tripUpserts.length;
-  }
+    if (tripUpserts.length) {
+      const { error } = await supabase.from("trips").upsert(tripUpserts);
+      if (error) throw error;
+      pushed += tripUpserts.length;
+    }
+  });
+
+  if (failures.length) throw new Error(`Couldn't sync ${failures.join("; ")}`);
 
   return { pulled, pushed, deleted: sent.length };
 }
@@ -577,7 +658,7 @@ const TABLE = {
 export async function pushDeletion(
   supabase: SupabaseClient,
   userId: string,
-  kind: "item" | "outfit" | "inspo" | "trip" | "plan",
+  kind: db.DeletableKind,
   id: string,
   imageIds: string[] = [],
 ) {

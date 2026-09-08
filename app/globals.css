@@ -128,8 +128,15 @@
     border: 1px solid var(--color-line);
     background: var(--color-shell);
     padding: 0.625rem 0.875rem;
-    font-size: 0.9375rem;
+    /* 16px keeps mobile Safari from zooming the page on focus. */
+    font-size: 1rem;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .field {
+      font-size: 0.9375rem;
+    }
   }
 
   .field::placeholder {

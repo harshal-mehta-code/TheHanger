@@ -122,10 +122,10 @@ export default function ItemCard({
             item.favorite ? `Unfavourite ${item.name}` : `Favourite ${item.name}`
           }
           aria-pressed={item.favorite}
-          className={`flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
+          className={`flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
             item.favorite
               ? "bg-berry text-bone shadow-sm"
-              : "bg-shell/85 text-ink-soft opacity-0 hover:bg-shell group-hover:opacity-100 focus-visible:opacity-100"
+              : "bg-shell/85 text-ink-soft opacity-100 hover:bg-shell sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
           }`}
         >
           <HeartIcon filled={item.favorite} className="h-4 w-4" />
@@ -135,7 +135,7 @@ export default function ItemCard({
           type="button"
           onClick={onWear}
           aria-label={`Log that ${item.name} was worn today`}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-0 backdrop-blur-sm transition-all hover:bg-sage hover:text-bone group-hover:opacity-100 focus-visible:opacity-100"
+          className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-100 backdrop-blur-sm transition-all hover:bg-sage hover:text-bone sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
           title="Wore it today"
         >
           <CheckIcon className="h-4 w-4" />

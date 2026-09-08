@@ -116,10 +116,10 @@ export default function InspoCard({
           inspo.favorite ? `Unfavourite ${inspo.title}` : `Favourite ${inspo.title}`
         }
         aria-pressed={inspo.favorite}
-        className={`absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
+        className={`absolute right-2.5 top-2.5 flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
           inspo.favorite
             ? "bg-berry text-bone shadow-sm"
-            : "bg-shell/85 text-ink-soft opacity-0 hover:bg-shell group-hover:opacity-100 focus-visible:opacity-100"
+            : "bg-shell/85 text-ink-soft opacity-100 hover:bg-shell sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
         }`}
       >
         <HeartIcon filled={inspo.favorite} className="h-4 w-4" />

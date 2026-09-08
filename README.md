@@ -91,20 +91,25 @@ themselves as filters.
 things being donated, sold, or stored for the season.
 
 **Recently deleted** — Deleting moves a piece to a 30-day trash rather than
-erasing it. Restoring brings back the record, its photo and its wear history,
-and un-deletes it in the cloud too. Curating a wardrobe is hours of work, so a
-mis-tap is never final.
+erasing it, and the toast offers a straight *Undo*. Restoring brings back the
+record, its photo, its wear history and the looks it belonged to, and un-deletes
+it in the cloud too. A delete arriving from another device lands in that
+device's trash as well, so the machine where the tap happened isn't the only way
+back. Curating a wardrobe is hours of work, so a mis-tap is never final.
 
-**Backup** — Export the whole closet — pieces, photos, outfits and wear history
-— as a single JSON file; restore it on another device or browser from the same
-menu. Restoring re-keys everything, so a backup merges into an existing closet
-rather than colliding with it.
+**Backup** — Export everything — pieces, photos, outfits, wear history,
+inspiration boards, the calendar and packing lists — as a single JSON file;
+restore it on another device or browser from the same menu. Restoring re-keys
+everything, so a backup merges into an existing closet rather than colliding
+with it, and a day already on the calendar is never overwritten by an incoming
+one.
 
 ## Where the data lives
 
 Everything is stored in **IndexedDB in the browser** — item records in one
-object store, photos as blobs in another. The app works fully offline and needs
-no account.
+object store, photos as blobs in another. No account is needed. The app asks for
+a storage-persistence grant on first load, because without one iOS Safari evicts
+script-writable storage after about a week without a visit.
 
 Add a Supabase project (below) and the same closet follows you across devices:
 the browser stays the source of truth for reading, and the cloud becomes a
@@ -157,8 +162,14 @@ two-person app, turn off Dashboard → Authentication → Sign In / Providers �
 Records carry an `updatedAt`, and the newer timestamp wins — last-write-wins,
 per record. That is the right trade here: two devices rarely edit the same piece
 in the same second, and the failure mode (one edit of one piece loses) is much
-cheaper than merging field by field. Deletes travel as tombstones so a second
-device doesn't push a deleted piece back.
+cheaper than merging field by field.
+
+Deletes travel as tombstones, and a tombstone is just another timestamped fact:
+it wins only if it is newer than the copy on the device. That is what makes
+restoring safe — a revived piece carries a fresh `updatedAt`, so it outranks the
+deletion and is pushed back up even if the restore itself happened with no
+signal. Each table reconciles independently, so one that fails is reported by
+name and doesn't stop the other four.
 
 Local writes go to IndexedDB first and are mirrored to the cloud in the
 background, so the app stays fast and keeps working with no signal; the next
