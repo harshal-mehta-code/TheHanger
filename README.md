@@ -138,7 +138,14 @@ Then **redeploy** — these are inlined at build time, so an existing deployment
 won't pick them up on its own. For local development, put the same two lines in
 `.env.local` (see `.env.example`).
 
-**5. Sign up in the app** — settings menu → *Sign in to sync*. Use the same
+**5. Point auth at the deployed app.** Dashboard → Authentication → URL
+Configuration: set *Site URL* to the production URL and add both it and
+`http://localhost:3000` to *Redirect URLs*. Password reset sends people back to
+`window.location.origin`, and Supabase refuses any origin not on that list — so
+skipping this leaves reset broken in production only, which is an unpleasant
+place to discover it.
+
+**6. Sign up in the app** — settings menu → *Sign in to sync*. Use the same
 email on her phone and her laptop and both stay in step.
 
 By default Supabase emails a confirmation link on sign-up. To skip that for a
@@ -181,8 +188,16 @@ history.
 ## Deploying to Vercel
 
 Import the repository at [vercel.com/new](https://vercel.com/new). Vercel detects
-Next.js and needs no configuration or environment variables — the app is fully
-static. Push to the branch and it redeploys.
+Next.js and needs no build configuration — the app is fully static. Push to the
+branch and it redeploys.
+
+Without cloud sync that is the whole story. With it, set
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under Settings →
+Environment Variables (they live on the free plan; the *Custom Environments*
+card on the Environments page is a different, paid feature and isn't needed).
+Because the two values are inlined at build time, adding them changes nothing
+until a build runs — redeploy afterwards, with the build cache off, or the app
+keeps serving the local-only bundle.
 
 On a phone, "Add to Home Screen" installs it as a standalone app (web manifest
 and icons are included).
