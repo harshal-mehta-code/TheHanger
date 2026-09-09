@@ -40,7 +40,7 @@ export default function AppHeader({
     <header className="sticky top-0 z-30 -mx-4 mb-4 bg-bone/85 px-4 pb-3 pt-4 backdrop-blur-md sm:-mx-6 sm:px-6">
       <div className="flex items-center gap-3">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-bright text-on-bright sm:h-10 sm:w-10">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-berry-bright text-on-bright sm:h-10 sm:w-10">
             <HangerMark className="animate-swing h-5 w-5 sm:h-6 sm:w-6" />
           </span>
           <span className="min-w-0">
@@ -70,7 +70,7 @@ export default function AppHeader({
                 aria-current={active ? "page" : undefined}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors lg:px-4 ${
                   active
-                    ? "bg-sage-bright text-on-bright"
+                    ? "bg-sage-bright text-on-sage"
                     : "text-ink-soft hover:text-berry"
                 }`}
               >
@@ -118,6 +118,10 @@ export default function AppHeader({
           />
         </div>
       )}
+
+      {/* The stripe rules the chrome off from the clothes, and is the one
+          place the preppy motif repeats on every screen. */}
+      <div className="awning mt-3" aria-hidden />
     </header>
   );
 }

@@ -94,7 +94,7 @@ export default function ItemDetail({
               <button
                 type="button"
                 onClick={onDelete}
-                className="btn-primary bg-berry-deep text-bone hover:bg-berry"
+                className="btn-primary bg-danger text-danger-ink hover:bg-danger-deep"
               >
                 Delete
               </button>

@@ -5,66 +5,73 @@
   --breakpoint-xs: 25rem;
 
   /**
-   * Everything is built from four colours: pullman green #373502, pale
-   * chestnut #e3a7b7, android green #b1bd41, pale silver #d5c8b5.
+   * Preppy chic, the Kate Spade way: crisp cream and near-black do the
+   * structural work, and colour arrives as a deliberate pop rather than a
+   * wash. Six colours, no strays.
    *
-   * The chestnut is the ground. Not a tint on a neutral page and not a wash
-   * behind one — the page itself is dusty chestnut, edge to edge, with
-   * near-white cards floating on top of it. That is what makes the palette
-   * the first thing you see rather than something you notice in the details.
+   *   ivory / white   the ground, and the cards that sit on it
+   *   near-black      text, and the filled shape of anything chosen — the
+   *                   primary button, the selected chip, the section you're on
+   *   hot pink        the signature: where you are, the app's own mark, badges
+   *   crimson         pink turned up — links, active borders, delete
+   *   pale pink       soft fills, quiet chips, the second bar in a chart
+   *   kelly green     good news: worn, packed, progress, section labels
    *
-   *   pale chestnut  the ground, and the accent read back out of it
-   *   pullman green  text, and the filled shape of anything chosen — the
-   *                  primary button, the selected chip, the section you're on
-   *   android green  good news: worn, packed, progress
-   *   pale silver    the quieter surfaces — behind photos, progress tracks
-   *
-   * `-bright` is a swatch at full strength, carrying dark text. The plain
-   * token is that hue pushed dark enough to read as small type on the ground.
+   * `-bright` is a swatch at full strength. The pinks are light enough to
+   * carry black lettering (`on-bright`); the green is dark and carries cream
+   * (`on-sage`). Neither of those two flips in dark mode, because the swatches
+   * themselves don't.
    */
-  --color-bone: #f4dedb;
-  --color-bone-deep: #ded2bd;
-  --color-shell: #fffcf7;
-  --color-ink: #2f2d02;
-  --color-ink-soft: #4f4b12;
-  --color-muted: #6a6524;
-  --color-line: #e9cfcc;
+  --color-bone: #fdf8f0;
+  --color-bone-deep: #f2ead9;
+  --color-shell: #ffffff;
+  --color-ink: #140505;
+  --color-ink-soft: #3b2626;
+  --color-muted: #6d5a5a;
+  --color-line: #e7ddcc;
 
-  --color-berry: #a8305a;
-  --color-berry-deep: #85234a;
-  --color-berry-bright: #e3a7b7;
-  --color-berry-soft: #fae7eb;
+  --color-berry: #bb1730;
+  --color-berry-deep: #8f1024;
+  --color-berry-bright: #f4699a;
+  --color-berry-soft: #fde7ef;
 
-  --color-sage: #586407;
-  --color-sage-bright: #b1bd41;
-  --color-sage-lift: #c3ce62;
-  --color-sage-soft: #e9f0c4;
+  --color-sage: #2f6524;
+  --color-sage-bright: #3f7c30;
+  --color-sage-lift: #4f9440;
+  --color-sage-soft: #e4f0dc;
 
-  --color-gold: #74601f;
-  --color-gold-bright: #d5c8b5;
-  --color-gold-soft: #efe6d3;
-  /* Readable text on a gold-soft chip — the accent itself is too pale there. */
-  --color-gold-ink: #665420;
+  /* The pale pink of the palette — the quietest way to say pink. */
+  --color-gold: #a12a6a;
+  --color-gold-bright: #f1bcdb;
+  --color-gold-soft: #fce8f3;
+  /* Readable text on a pale-pink chip, where the fill itself is too light. */
+  --color-gold-ink: #8c2159;
 
   /**
    * Chosen things — the primary button, the selected chip, the section you're
-   * on. Pullman green filled with chestnut lettering on a light page; the two
-   * trade places in the dark, where a dark fill would disappear into the
-   * ground. `on-bright` is text laid over a raw swatch, and stays dark in both
-   * themes because the swatches keep their lightness in dark mode.
+   * on. Black filled with cream lettering, which is the whole look; the two
+   * trade places in the dark, where the pink takes the fill so a chosen thing
+   * still reads as chosen.
    */
-  --color-accent: #2f2d02;
-  --color-accent-ink: #eaaebe;
-  --color-on-bright: #2b2902;
+  --color-accent: #140505;
+  --color-accent-ink: #fdf8f0;
+  /* Deleting is the one thing that says red rather than pink, and it says it
+     the same way in both themes — in the dark the primary button is itself
+     pink, and a pink Delete beside it would read as the safe choice. */
+  --color-danger: #bb1730;
+  --color-danger-deep: #8f1024;
+  --color-danger-ink: #fffafa;
+  --color-on-bright: #1a0708;
+  --color-on-sage: #fdf8f0;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 
   --radius-card: 1.25rem;
 
-  --shadow-card: 0 1px 2px rgb(40 38 8 / 0.04), 0 8px 24px -12px rgb(40 38 8 / 0.14);
-  --shadow-lift: 0 2px 4px rgb(40 38 8 / 0.05), 0 18px 40px -16px rgb(40 38 8 / 0.28);
-  --shadow-sheet: 0 24px 70px -20px rgb(40 38 8 / 0.35);
+  --shadow-card: 0 1px 2px rgb(20 5 5 / 0.04), 0 8px 24px -12px rgb(20 5 5 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(20 5 5 / 0.05), 0 18px 40px -16px rgb(20 5 5 / 0.28);
+  --shadow-sheet: 0 24px 70px -20px rgb(20 5 5 / 0.35);
 }
 
 /**
@@ -74,33 +81,36 @@
  */
 @layer theme {
   :root[data-theme="dark"] {
-    /* Dark keeps the same idea with the roles swapped: pullman green becomes
-       the ground the chestnut is read against. */
-    --color-bone: #1b1904;
-    --color-bone-deep: #2f2b14;
-    --color-shell: #2b2809;
-    --color-ink: #f4efdd;
-    --color-ink-soft: #ded7b9;
-    --color-muted: #a8a17c;
-    --color-line: #423d10;
+    /* Night stays preppy rather than going navy: warm near-black ground,
+       cream type, and the pink promoted to carry what black carried by day. */
+    --color-bone: #120a0b;
+    --color-bone-deep: #23161a;
+    --color-shell: #1c1215;
+    --color-ink: #fdf3ee;
+    --color-ink-soft: #e0cfcc;
+    --color-muted: #a89795;
+    --color-line: #372329;
 
-    --color-berry: #ee9db3;
-    --color-berry-deep: #f6c2d0;
-    --color-berry-bright: #e3a7b7;
-    --color-berry-soft: #45202f;
+    --color-berry: #ff85ab;
+    --color-berry-deep: #ffabc5;
+    --color-berry-bright: #f4699a;
+    --color-berry-soft: #3d1421;
 
-    --color-sage: #bdc94e;
-    --color-sage-bright: #b1bd41;
-    --color-sage-lift: #c3ce62;
-    --color-sage-soft: #313510;
+    --color-sage: #93c97e;
+    --color-sage-bright: #3f7c30;
+    --color-sage-lift: #4f9440;
+    --color-sage-soft: #1d2d17;
 
-    --color-gold: #d5c8b5;
-    --color-gold-bright: #d5c8b5;
-    --color-gold-soft: #37311f;
-    --color-gold-ink: #e0d5c2;
+    --color-gold: #f1bcdb;
+    --color-gold-bright: #f1bcdb;
+    --color-gold-soft: #34202c;
+    --color-gold-ink: #f2c6de;
 
-    --color-accent: #e3a7b7;
-    --color-accent-ink: #2b2902;
+    --color-accent: #f4699a;
+    --color-accent-ink: #1a0708;
+    --color-danger: #cf1e39;
+    --color-danger-deep: #dc2a44;
+    --color-danger-ink: #fffafa;
   }
 }
 
@@ -288,6 +298,21 @@
 
   .btn-ghost:active {
     transform: scale(0.97);
+  }
+
+  /**
+   * The preppy stripe, kept to a hairline. It rules off the sticky header on
+   * every screen, which is the one place a motif can repeat without ever
+   * getting in the way of a photograph.
+   */
+  .awning {
+    height: 3px;
+    border-radius: 9999px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--color-berry-bright) 0 10px,
+      var(--color-ink) 10px 20px
+    );
   }
 
   .card-surface {

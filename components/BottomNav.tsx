@@ -45,7 +45,7 @@ export default function BottomNav() {
             >
               <span
                 className={`flex h-7 w-14 items-center justify-center rounded-full transition-colors ${
-                  active ? "bg-sage-bright text-on-bright" : ""
+                  active ? "bg-sage-bright text-on-sage" : ""
                 }`}
               >
                 <Icon className="h-5 w-5" />
