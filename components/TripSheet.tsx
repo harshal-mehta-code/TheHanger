@@ -110,7 +110,7 @@ export default function TripSheet({
               <button
                 type="button"
                 onClick={onDelete}
-                className="btn-primary bg-berry-deep hover:bg-berry"
+                className="btn-primary bg-berry-deep text-bone hover:bg-berry"
               >
                 Delete
               </button>
@@ -204,7 +204,7 @@ export default function TripSheet({
                   aria-pressed={tab === id}
                   className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
                     tab === id
-                      ? "bg-ink text-bone"
+                      ? "bg-berry-bright text-on-bright"
                       : "text-ink-soft hover:text-berry-deep"
                   }`}
                 >

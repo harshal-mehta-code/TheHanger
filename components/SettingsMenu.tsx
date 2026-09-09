@@ -311,7 +311,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
                     onNotify("Closet emptied.");
                     close();
                   }}
-                  className="btn-primary flex-1 bg-berry-deep py-1.5 text-xs hover:bg-berry"
+                  className="btn-primary flex-1 bg-berry-deep text-bone py-1.5 text-xs hover:bg-berry"
                 >
                   Erase
                 </button>

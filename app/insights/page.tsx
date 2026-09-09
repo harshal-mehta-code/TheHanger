@@ -225,7 +225,7 @@ export default function InsightsPage() {
                     </span>
                     <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-bone-deep">
                       <span
-                        className="block h-full rounded-full bg-ink/75"
+                        className="block h-full rounded-full bg-sage-bright"
                         style={{
                           width: `${(c.count / data.byCategory[0].count) * 100}%`,
                         }}
@@ -387,7 +387,7 @@ export default function InsightsPage() {
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-bar px-4 py-2.5 text-sm font-medium text-bar-ink shadow-[var(--shadow-lift)]"
         >
           {toast}
         </div>

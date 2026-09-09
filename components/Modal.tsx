@@ -130,7 +130,7 @@ export default function Modal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="btn-primary bg-berry-deep hover:bg-berry"
+                  className="btn-primary bg-berry-deep text-bone hover:bg-berry"
                 >
                   Discard
                 </button>
