@@ -156,7 +156,9 @@
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-muted);
+    /* Every section label in the app, which is where the android green shows
+       up in the body of a page rather than only in its chrome. */
+    color: var(--color-sage);
   }
 
   /* Panels state their own colour rather than inheriting it. A surface can be
