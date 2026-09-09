@@ -258,7 +258,7 @@ export default function InspoPage() {
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-bar px-4 py-2.5 text-sm font-medium text-bar-ink shadow-[var(--shadow-lift)] sm:bottom-6"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)] sm:bottom-6"
         >
           {toast}
         </div>

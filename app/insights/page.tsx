@@ -387,7 +387,7 @@ export default function InsightsPage() {
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-bar px-4 py-2.5 text-sm font-medium text-bar-ink shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] sm:bottom-6 -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
           {toast}
         </div>

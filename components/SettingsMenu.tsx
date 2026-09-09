@@ -383,7 +383,7 @@ function MenuItem({
       </span>
       <span className="min-w-0">
         <span
-          className={`block text-sm font-medium ${danger ? "text-berry-deep" : ""}`}
+          className={`block text-sm font-medium ${danger ? "text-berry-deep" : "text-ink"}`}
         >
           {label}
         </span>

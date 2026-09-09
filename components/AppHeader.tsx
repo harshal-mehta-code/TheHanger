@@ -37,10 +37,10 @@ export default function AppHeader({
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 -mx-4 mb-4 border-b border-bar-line bg-bar px-4 pb-3 pt-4 text-bar-ink sm:-mx-6 sm:px-6">
+    <header className="sticky top-0 z-30 -mx-4 mb-4 bg-bone/85 px-4 pb-3 pt-4 backdrop-blur-md sm:-mx-6 sm:px-6">
       <div className="flex items-center gap-3">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-bright text-on-bright sm:h-10 sm:w-10">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-berry-bright text-on-bright sm:h-10 sm:w-10">
             <HangerMark className="animate-swing h-5 w-5 sm:h-6 sm:w-6" />
           </span>
           <span className="min-w-0">
@@ -48,7 +48,7 @@ export default function AppHeader({
               The Hanger
             </span>
             {subtitle && (
-              <span className="mt-1 hidden text-xs text-bar-ink/70 lg:block">
+              <span className="mt-1 hidden text-xs text-muted lg:block">
                 {subtitle}
               </span>
             )}
@@ -59,7 +59,7 @@ export default function AppHeader({
             phone, so the top of a small screen stays mostly clothes. */}
         <nav
           aria-label="Sections"
-          className="mx-auto hidden shrink-0 gap-1 rounded-full border border-bar-line bg-bar-ink/10 p-1 sm:flex"
+          className="mx-auto hidden shrink-0 gap-1 rounded-full border border-line bg-shell/70 p-1 sm:flex"
         >
           {TABS.map((tab) => {
             const active = pathname === tab.href;
@@ -70,8 +70,8 @@ export default function AppHeader({
                 aria-current={active ? "page" : undefined}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors lg:px-4 ${
                   active
-                    ? "bg-berry-bright text-on-bright"
-                    : "text-bar-ink/75 hover:bg-bar-ink/10 hover:text-bar-ink"
+                    ? "bg-accent text-accent-ink"
+                    : "text-ink-soft hover:text-berry"
                 }`}
               >
                 {tab.label}

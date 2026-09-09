@@ -272,7 +272,7 @@ export default function ClosetPage() {
       {toast && (
         <div
           role="status"
-          className="animate-rise fixed bottom-20 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] items-center gap-3 sm:bottom-6 -translate-x-1/2 rounded-full bg-bar py-2.5 pl-4 pr-2 text-sm font-medium text-bar-ink shadow-[var(--shadow-lift)]"
+          className="animate-rise fixed bottom-20 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] items-center gap-3 sm:bottom-6 -translate-x-1/2 rounded-full bg-ink py-2.5 pl-4 pr-2 text-sm font-medium text-bone shadow-[var(--shadow-lift)]"
         >
           <span className="truncate">{toast.message}</span>
           {toast.undo && (
@@ -284,7 +284,7 @@ export default function ClosetPage() {
                 if (toastTimer.current) clearTimeout(toastTimer.current);
                 await undo?.();
               }}
-              className="shrink-0 rounded-full bg-bar-ink/15 px-3 py-1 text-xs font-semibold text-bar-ink transition-colors hover:bg-bar-ink/25"
+              className="shrink-0 rounded-full bg-bone/15 px-3 py-1 text-xs font-semibold text-bone transition-colors hover:bg-bone/25"
             >
               Undo
             </button>

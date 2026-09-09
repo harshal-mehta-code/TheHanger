@@ -204,7 +204,7 @@ export default function TripSheet({
                   aria-pressed={tab === id}
                   className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
                     tab === id
-                      ? "bg-berry-bright text-on-bright"
+                      ? "bg-accent text-accent-ink"
                       : "text-ink-soft hover:text-berry-deep"
                   }`}
                 >

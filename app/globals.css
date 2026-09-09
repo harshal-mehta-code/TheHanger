@@ -6,58 +6,55 @@
 
   /**
    * Everything is built from four colours: pullman green #373502, pale
-   * chestnut #e3a7b7, android green #b1bd41, pale silver #d5c8b5. The tokens
-   * below are those four at the lightnesses each job needs, and nothing from
-   * outside the family.
+   * chestnut #e3a7b7, android green #b1bd41, pale silver #d5c8b5.
    *
-   * The roles they play:
-   *   pale silver   the ground the whole app sits on, and its borders
-   *   pullman green text, and the chrome bar that frames every screen
-   *   android green actions and good news — the primary button, worn,
-   *                 packed, progress
-   *   pale chestnut selection and place — active chips, the current section,
-   *                 favourites, and the tint behind every photo
+   * The chestnut is the ground. Not a tint on a neutral page and not a wash
+   * behind one — the page itself is dusty chestnut, edge to edge, with
+   * near-white cards floating on top of it. That is what makes the palette
+   * the first thing you see rather than something you notice in the details.
    *
-   * `-bright` is a swatch at full strength, for fills that carry dark text.
-   * The plain token is that hue pushed dark enough to be read as small text
-   * on a pale ground, which the swatch at its own lightness cannot do.
+   *   pale chestnut  the ground, and the accent read back out of it
+   *   pullman green  text, and the filled shape of anything chosen — the
+   *                  primary button, the selected chip, the section you're on
+   *   android green  good news: worn, packed, progress
+   *   pale silver    the quieter surfaces — behind photos, progress tracks
+   *
+   * `-bright` is a swatch at full strength, carrying dark text. The plain
+   * token is that hue pushed dark enough to read as small type on the ground.
    */
-  --color-bone: #ece2cd;
-  --color-bone-deep: #ecdcdb;
-  --color-shell: #fffdf8;
+  --color-bone: #f4dedb;
+  --color-bone-deep: #ded2bd;
+  --color-shell: #fffcf7;
   --color-ink: #2f2d02;
-  --color-ink-soft: #55510f;
-  --color-muted: #736e2a;
-  --color-line: #d9ccb4;
+  --color-ink-soft: #4f4b12;
+  --color-muted: #6a6524;
+  --color-line: #e9cfcc;
 
-  --color-berry: #b03a5c;
-  --color-berry-deep: #8a2946;
+  --color-berry: #a8305a;
+  --color-berry-deep: #85234a;
   --color-berry-bright: #e3a7b7;
-  --color-berry-soft: #f9e4ea;
+  --color-berry-soft: #fae7eb;
 
-  --color-sage: #5e6a0c;
+  --color-sage: #586407;
   --color-sage-bright: #b1bd41;
   --color-sage-lift: #c3ce62;
   --color-sage-soft: #e9f0c4;
 
-  --color-gold: #7a6528;
+  --color-gold: #74601f;
   --color-gold-bright: #d5c8b5;
   --color-gold-soft: #efe6d3;
   /* Readable text on a gold-soft chip — the accent itself is too pale there. */
-  --color-gold-ink: #63521e;
+  --color-gold-ink: #665420;
 
   /**
-   * Two pairs that deliberately do NOT invert between themes.
-   *
-   * `bar` is the header and the phone's bottom nav: pullman green in both
-   * modes, because the frame around the app is the same object whichever
-   * theme it is wearing. `on-bright` is the text laid over a raw swatch —
-   * the swatches keep their lightness in dark mode, so anything written on
-   * them has to stay dark or it would vanish there.
+   * Chosen things — the primary button, the selected chip, the section you're
+   * on. Pullman green filled with chestnut lettering on a light page; the two
+   * trade places in the dark, where a dark fill would disappear into the
+   * ground. `on-bright` is text laid over a raw swatch, and stays dark in both
+   * themes because the swatches keep their lightness in dark mode.
    */
-  --color-bar: #2f2d02;
-  --color-bar-ink: #f0e9da;
-  --color-bar-line: #4d4911;
+  --color-accent: #2f2d02;
+  --color-accent-ink: #eaaebe;
   --color-on-bright: #2b2902;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -77,10 +74,10 @@
  */
 @layer theme {
   :root[data-theme="dark"] {
-    /* Dark is pullman green all the way down. Chestnut and android green are
-       already light enough to carry here, so they arrive nearly as picked. */
+    /* Dark keeps the same idea with the roles swapped: pullman green becomes
+       the ground the chestnut is read against. */
     --color-bone: #1b1904;
-    --color-bone-deep: #2f2413;
+    --color-bone-deep: #2f2b14;
     --color-shell: #2b2809;
     --color-ink: #f4efdd;
     --color-ink-soft: #ded7b9;
@@ -102,9 +99,8 @@
     --color-gold-soft: #37311f;
     --color-gold-ink: #e0d5c2;
 
-    --color-bar: #14120a;
-    --color-bar-ink: #ece6d4;
-    --color-bar-line: #302c0d;
+    --color-accent: #e3a7b7;
+    --color-accent-ink: #2b2902;
   }
 }
 
@@ -163,8 +159,12 @@
     color: var(--color-muted);
   }
 
+  /* Panels state their own colour rather than inheriting it. A surface can be
+     dropped inside a differently-coloured container — the settings menu lives
+     inside the header — and inherited text then lands on the wrong ground. */
   .field {
     width: 100%;
+    color: var(--color-ink);
     border-radius: 0.875rem;
     border: 1px solid var(--color-line);
     background: var(--color-shell);
@@ -228,15 +228,15 @@
   /* Chips are the most-repeated element in the app, so a selected one is where
      chestnut does most of its work. */
   .chip[data-active="true"] {
-    background: var(--color-berry-bright);
-    border-color: var(--color-berry-bright);
-    color: var(--color-on-bright);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent-ink);
   }
 
   .chip[data-active="true"]:hover {
-    background: var(--color-berry-bright);
+    background: var(--color-berry-deep);
     border-color: var(--color-berry-deep);
-    color: var(--color-on-bright);
+    color: var(--color-berry-soft);
   }
 
   /* Every "do the thing" button in the app is the android green, dark ink on
@@ -248,16 +248,17 @@
     justify-content: center;
     gap: 0.5rem;
     border-radius: 9999px;
-    background: var(--color-sage-bright);
+    background: var(--color-accent);
     padding: 0.625rem 1.125rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-on-bright);
+    color: var(--color-accent-ink);
     transition: background 0.15s ease, transform 0.12s ease;
   }
 
   .btn-primary:hover {
-    background: var(--color-sage-lift);
+    background: var(--color-berry-deep);
+    color: var(--color-berry-soft);
   }
 
   .btn-primary:active {
@@ -289,6 +290,7 @@
 
   .card-surface {
     background: var(--color-shell);
+    color: var(--color-ink);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
