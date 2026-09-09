@@ -311,7 +311,7 @@ export default function SettingsMenu({ onNotify, onQuickAdd }: Props) {
                     onNotify("Closet emptied.");
                     close();
                   }}
-                  className="btn-primary flex-1 bg-danger text-danger-ink py-1.5 text-xs hover:bg-danger-deep"
+                  className="btn-primary flex-1 bg-berry-deep py-1.5 text-xs hover:bg-berry"
                 >
                   Erase
                 </button>
@@ -383,7 +383,7 @@ function MenuItem({
       </span>
       <span className="min-w-0">
         <span
-          className={`block text-sm font-medium ${danger ? "text-berry-deep" : "text-ink"}`}
+          className={`block text-sm font-medium ${danger ? "text-berry-deep" : ""}`}
         >
           {label}
         </span>

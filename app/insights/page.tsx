@@ -225,7 +225,7 @@ export default function InsightsPage() {
                     </span>
                     <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-bone-deep">
                       <span
-                        className="block h-full rounded-full bg-sage-bright"
+                        className="block h-full rounded-full bg-ink/75"
                         style={{
                           width: `${(c.count / data.byCategory[0].count) * 100}%`,
                         }}
@@ -335,7 +335,7 @@ export default function InsightsPage() {
                       </span>
                       <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-bone-deep">
                         <span
-                          className="block h-full rounded-full bg-gold-bright"
+                          className="block h-full rounded-full bg-gold"
                           style={{ width: `${(c.spend / arr[0].spend) * 100}%` }}
                         />
                       </span>

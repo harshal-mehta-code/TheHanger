@@ -94,7 +94,7 @@ export default function ItemDetail({
               <button
                 type="button"
                 onClick={onDelete}
-                className="btn-primary bg-danger text-danger-ink hover:bg-danger-deep"
+                className="btn-primary bg-berry-deep hover:bg-berry"
               >
                 Delete
               </button>
@@ -106,7 +106,7 @@ export default function ItemDetail({
               type="button"
               onClick={() => onLogWear(todayISO())}
               disabled={wornToday}
-              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:text-bone disabled:opacity-100 sm:flex-none"
+              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
             >
               <CheckIcon className="h-4 w-4" />
               {wornToday ? "Worn today" : "Wore it today"}

@@ -5,73 +5,38 @@
   --breakpoint-xs: 25rem;
 
   /**
-   * Preppy chic, the Kate Spade way: crisp cream and near-black do the
-   * structural work, and colour arrives as a deliberate pop rather than a
-   * wash. Six colours, no strays.
-   *
-   *   ivory / white   the ground, and the cards that sit on it
-   *   near-black      text, and the filled shape of anything chosen — the
-   *                   primary button, the selected chip, the section you're on
-   *   hot pink        the signature: where you are, the app's own mark, badges
-   *   crimson         pink turned up — links, active borders, delete
-   *   pale pink       soft fills, quiet chips, the second bar in a chart
-   *   kelly green     good news: worn, packed, progress, section labels
-   *
-   * `-bright` is a swatch at full strength. The pinks are light enough to
-   * carry black lettering (`on-bright`); the green is dark and carries cream
-   * (`on-sage`). Neither of those two flips in dark mode, because the swatches
-   * themselves don't.
+   * Four colours carry the whole app: pullman green (#373502) as the ink,
+   * pale chestnut (#e3a7b7) as the primary accent, android green (#b1bd41)
+   * as the second, and pale silver (#d5c8b5) as the warm neutral. The tokens
+   * below are those four lightened or deepened until each one is legible in
+   * the role it plays — the source swatches themselves sit at mid tone, so
+   * using them raw as text on a pale ground would not carry.
    */
-  --color-bone: #fdf8f0;
-  --color-bone-deep: #f2ead9;
-  --color-shell: #ffffff;
-  --color-ink: #140505;
-  --color-ink-soft: #3b2626;
-  --color-muted: #6d5a5a;
-  --color-line: #e7ddcc;
-
-  --color-berry: #bb1730;
-  --color-berry-deep: #8f1024;
-  --color-berry-bright: #f4699a;
-  --color-berry-soft: #fde7ef;
-
-  --color-sage: #2f6524;
-  --color-sage-bright: #3f7c30;
-  --color-sage-lift: #4f9440;
-  --color-sage-soft: #e4f0dc;
-
-  /* The pale pink of the palette — the quietest way to say pink. */
-  --color-gold: #a12a6a;
-  --color-gold-bright: #f1bcdb;
-  --color-gold-soft: #fce8f3;
-  /* Readable text on a pale-pink chip, where the fill itself is too light. */
-  --color-gold-ink: #8c2159;
-
-  /**
-   * Chosen things — the primary button, the selected chip, the section you're
-   * on. Black filled with cream lettering, which is the whole look; the two
-   * trade places in the dark, where the pink takes the fill so a chosen thing
-   * still reads as chosen.
-   */
-  --color-accent: #140505;
-  --color-accent-ink: #fdf8f0;
-  /* Deleting is the one thing that says red rather than pink, and it says it
-     the same way in both themes — in the dark the primary button is itself
-     pink, and a pink Delete beside it would read as the safe choice. */
-  --color-danger: #bb1730;
-  --color-danger-deep: #8f1024;
-  --color-danger-ink: #fffafa;
-  --color-on-bright: #1a0708;
-  --color-on-sage: #fdf8f0;
+  --color-bone: #f8f4ec;
+  --color-bone-deep: #eee7d8;
+  --color-shell: #fffdf8;
+  --color-ink: #373502;
+  --color-ink-soft: #575330;
+  --color-muted: #77714c;
+  --color-line: #e2d9c6;
+  --color-berry: #b45874;
+  --color-berry-deep: #8c3a52;
+  --color-berry-soft: #f9e9ee;
+  --color-sage: #6a7519;
+  --color-sage-soft: #eef3d8;
+  --color-gold: #857038;
+  --color-gold-soft: #f2ebdc;
+  /* Readable text on a gold-soft chip — the accent itself is too pale there. */
+  --color-gold-ink: #6d5a32;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 
   --radius-card: 1.25rem;
 
-  --shadow-card: 0 1px 2px rgb(20 5 5 / 0.04), 0 8px 24px -12px rgb(20 5 5 / 0.14);
-  --shadow-lift: 0 2px 4px rgb(20 5 5 / 0.05), 0 18px 40px -16px rgb(20 5 5 / 0.28);
-  --shadow-sheet: 0 24px 70px -20px rgb(20 5 5 / 0.35);
+  --shadow-card: 0 1px 2px rgb(40 38 8 / 0.04), 0 8px 24px -12px rgb(40 38 8 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(40 38 8 / 0.05), 0 18px 40px -16px rgb(40 38 8 / 0.28);
+  --shadow-sheet: 0 24px 70px -20px rgb(40 38 8 / 0.35);
 }
 
 /**
@@ -81,36 +46,24 @@
  */
 @layer theme {
   :root[data-theme="dark"] {
-    /* Night stays preppy rather than going navy: warm near-black ground,
-       cream type, and the pink promoted to carry what black carried by day. */
-    --color-bone: #120a0b;
-    --color-bone-deep: #23161a;
-    --color-shell: #1c1215;
-    --color-ink: #fdf3ee;
-    --color-ink-soft: #e0cfcc;
-    --color-muted: #a89795;
-    --color-line: #372329;
-
-    --color-berry: #ff85ab;
-    --color-berry-deep: #ffabc5;
-    --color-berry-bright: #f4699a;
-    --color-berry-soft: #3d1421;
-
-    --color-sage: #93c97e;
-    --color-sage-bright: #3f7c30;
-    --color-sage-lift: #4f9440;
-    --color-sage-soft: #1d2d17;
-
-    --color-gold: #f1bcdb;
-    --color-gold-bright: #f1bcdb;
-    --color-gold-soft: #34202c;
-    --color-gold-ink: #f2c6de;
-
-    --color-accent: #f4699a;
-    --color-accent-ink: #1a0708;
-    --color-danger: #cf1e39;
-    --color-danger-deep: #dc2a44;
-    --color-danger-ink: #fffafa;
+    /* Dark is where the four swatches appear closest to as-picked: pullman
+       green becomes the ground, and chestnut, android green and pale silver
+       sit on it almost untouched. */
+    --color-bone: #16140b;
+    --color-bone-deep: #232009;
+    --color-shell: #201e0c;
+    --color-ink: #f3eee1;
+    --color-ink-soft: #d6cfb9;
+    --color-muted: #a09a7e;
+    --color-line: #38340f;
+    --color-berry: #e3a7b7;
+    --color-berry-deep: #efc2ce;
+    --color-berry-soft: #3a2229;
+    --color-sage: #b1bd41;
+    --color-sage-soft: #2b2e10;
+    --color-gold: #d5c8b5;
+    --color-gold-soft: #302c1c;
+    --color-gold-ink: #ded3c0;
   }
 }
 
@@ -127,6 +80,17 @@
     background-color: var(--color-bone);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    /* A whisper of texture so the cream doesn't read as flat grey. */
+    background-image:
+      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.30), transparent 42%),
+      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.16), transparent 38%);
+    background-attachment: fixed;
+  }
+
+  :root[data-theme="dark"] body {
+    background-image:
+      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.10), transparent 45%),
+      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.08), transparent 40%);
   }
 
   /* Native controls (date pickers, selects) inherit the surface, not white. */
@@ -135,8 +99,8 @@
   }
 
   ::selection {
-    background: var(--color-berry-bright);
-    color: var(--color-on-bright);
+    background: var(--color-berry-soft);
+    color: var(--color-berry-deep);
   }
 
   :focus-visible {
@@ -166,17 +130,11 @@
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    /* Every section label in the app, which is where the android green shows
-       up in the body of a page rather than only in its chrome. */
-    color: var(--color-sage);
+    color: var(--color-muted);
   }
 
-  /* Panels state their own colour rather than inheriting it. A surface can be
-     dropped inside a differently-coloured container — the settings menu lives
-     inside the header — and inherited text then lands on the wrong ground. */
   .field {
     width: 100%;
-    color: var(--color-ink);
     border-radius: 0.875rem;
     border: 1px solid var(--color-line);
     background: var(--color-shell);
@@ -233,44 +191,34 @@
     color: var(--color-berry-deep);
   }
 
-  .chip:hover {
-    background: var(--color-berry-soft);
-  }
-
-  /* Chips are the most-repeated element in the app, so a selected one is where
-     chestnut does most of its work. */
   .chip[data-active="true"] {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: var(--color-accent-ink);
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-bone);
   }
 
   .chip[data-active="true"]:hover {
     background: var(--color-berry-deep);
     border-color: var(--color-berry-deep);
-    color: var(--color-berry-soft);
+    color: var(--color-bone);
   }
 
-  /* Every "do the thing" button in the app is the android green, dark ink on
-     top. It is the single loudest note in the palette, so it marks the one
-     action a screen is actually for. */
   .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     border-radius: 9999px;
-    background: var(--color-accent);
+    background: var(--color-ink);
     padding: 0.625rem 1.125rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-accent-ink);
+    color: var(--color-bone);
     transition: background 0.15s ease, transform 0.12s ease;
   }
 
   .btn-primary:hover {
     background: var(--color-berry-deep);
-    color: var(--color-berry-soft);
   }
 
   .btn-primary:active {
@@ -292,32 +240,15 @@
   }
 
   .btn-ghost:hover {
-    border-color: var(--color-berry-bright);
-    background: var(--color-berry-soft);
+    border-color: var(--color-ink);
   }
 
   .btn-ghost:active {
     transform: scale(0.97);
   }
 
-  /**
-   * The preppy stripe, kept to a hairline. It rules off the sticky header on
-   * every screen, which is the one place a motif can repeat without ever
-   * getting in the way of a photograph.
-   */
-  .awning {
-    height: 3px;
-    border-radius: 9999px;
-    background: repeating-linear-gradient(
-      90deg,
-      var(--color-berry-bright) 0 10px,
-      var(--color-ink) 10px 20px
-    );
-  }
-
   .card-surface {
     background: var(--color-shell);
-    color: var(--color-ink);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);

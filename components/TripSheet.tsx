@@ -110,7 +110,7 @@ export default function TripSheet({
               <button
                 type="button"
                 onClick={onDelete}
-                className="btn-primary bg-danger text-danger-ink hover:bg-danger-deep"
+                className="btn-primary bg-berry-deep hover:bg-berry"
               >
                 Delete
               </button>
@@ -179,7 +179,7 @@ export default function TripSheet({
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-bone-deep">
               <div
-                className="h-full rounded-full bg-sage-bright transition-all"
+                className="h-full rounded-full bg-sage transition-all"
                 style={{
                   width: `${checklist.length ? (packedCount / checklist.length) * 100 : 0}%`,
                 }}
@@ -204,7 +204,7 @@ export default function TripSheet({
                   aria-pressed={tab === id}
                   className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
                     tab === id
-                      ? "bg-accent text-accent-ink"
+                      ? "bg-ink text-bone"
                       : "text-ink-soft hover:text-berry-deep"
                   }`}
                 >

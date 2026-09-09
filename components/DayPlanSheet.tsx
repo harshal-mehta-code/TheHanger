@@ -143,7 +143,7 @@ export default function DayPlanSheet({
               aria-pressed={tab === id}
               className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
                 tab === id
-                  ? "bg-accent text-accent-ink"
+                  ? "bg-ink text-bone"
                   : "text-ink-soft hover:text-berry-deep"
               }`}
             >

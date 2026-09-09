@@ -143,9 +143,7 @@ export default function PlanPage() {
             onClick={() => setTab(id)}
             aria-pressed={tab === id}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              tab === id
-                ? "bg-accent text-accent-ink"
-                : "text-ink-soft hover:bg-berry-soft"
+              tab === id ? "bg-ink text-bone" : "text-ink-soft hover:text-berry-deep"
             }`}
           >
             {label}
@@ -314,7 +312,7 @@ export default function PlanPage() {
                   </p>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-bone-deep">
                     <div
-                      className="h-full rounded-full bg-sage-bright transition-all"
+                      className="h-full rounded-full bg-sage transition-all"
                       style={{
                         width: `${total.size ? (packed / total.size) * 100 : 0}%`,
                       }}

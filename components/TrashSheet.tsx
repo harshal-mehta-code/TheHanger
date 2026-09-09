@@ -95,7 +95,7 @@ export default function TrashSheet({ onClose }: { onClose: () => void }) {
                         await purgeTrashEntry(entry.id);
                         setConfirming(null);
                       }}
-                      className="btn-primary bg-danger text-danger-ink px-2.5 py-1.5 text-xs hover:bg-danger-deep"
+                      className="btn-primary bg-berry-deep px-2.5 py-1.5 text-xs hover:bg-berry"
                     >
                       Erase
                     </button>

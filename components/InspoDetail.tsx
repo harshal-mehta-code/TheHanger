@@ -74,7 +74,7 @@ export default function InspoDetail({
               <button
                 type="button"
                 onClick={onDelete}
-                className="btn-primary bg-danger text-danger-ink hover:bg-danger-deep"
+                className="btn-primary bg-berry-deep hover:bg-berry"
               >
                 Delete
               </button>
