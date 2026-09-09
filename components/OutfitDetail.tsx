@@ -83,7 +83,7 @@ export default function OutfitDetail({
               type="button"
               onClick={() => onLogWear(todayISO())}
               disabled={wornToday}
-              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage disabled:opacity-100 sm:flex-none"
+              className="btn-primary flex-1 disabled:cursor-default disabled:bg-sage-bright disabled:text-ink disabled:opacity-100 sm:flex-none"
             >
               <CheckIcon className="h-4 w-4" />
               {wornToday ? "Worn today" : "Wore this today"}

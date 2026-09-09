@@ -179,7 +179,7 @@ export default function TripSheet({
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-bone-deep">
               <div
-                className="h-full rounded-full bg-sage transition-all"
+                className="h-full rounded-full bg-sage-bright transition-all"
                 style={{
                   width: `${checklist.length ? (packedCount / checklist.length) * 100 : 0}%`,
                 }}

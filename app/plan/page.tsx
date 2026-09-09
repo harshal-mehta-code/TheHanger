@@ -312,7 +312,7 @@ export default function PlanPage() {
                   </p>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-bone-deep">
                     <div
-                      className="h-full rounded-full bg-sage transition-all"
+                      className="h-full rounded-full bg-sage-bright transition-all"
                       style={{
                         width: `${total.size ? (packed / total.size) * 100 : 0}%`,
                       }}

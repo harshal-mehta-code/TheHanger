@@ -70,7 +70,7 @@ export default function ItemCard({
           )}
 
           {justWorn && (
-            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage/95 py-2 text-xs font-semibold text-bone">
+            <span className="animate-pop absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-sage-bright/95 py-2 text-xs font-semibold text-ink">
               <CheckIcon className="h-4 w-4" /> Logged for today
             </span>
           )}
@@ -135,7 +135,7 @@ export default function ItemCard({
           type="button"
           onClick={onWear}
           aria-label={`Log that ${item.name} was worn today`}
-          className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-100 backdrop-blur-sm transition-all hover:bg-sage hover:text-bone sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+          className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-shell/85 text-ink-soft opacity-100 backdrop-blur-sm transition-all hover:bg-sage-bright hover:text-ink sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
           title="Wore it today"
         >
           <CheckIcon className="h-4 w-4" />

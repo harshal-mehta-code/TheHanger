@@ -5,29 +5,40 @@
   --breakpoint-xs: 25rem;
 
   /**
-   * Four colours carry the whole app: pullman green (#373502) as the ink,
-   * pale chestnut (#e3a7b7) as the primary accent, android green (#b1bd41)
-   * as the second, and pale silver (#d5c8b5) as the warm neutral. The tokens
-   * below are those four lightened or deepened until each one is legible in
-   * the role it plays — the source swatches themselves sit at mid tone, so
-   * using them raw as text on a pale ground would not carry.
+   * Four colours and nothing else: pullman green #373502, pale chestnut
+   * #e3a7b7, android green #b1bd41, pale silver #d5c8b5.
+   *
+   * Each family has two jobs, and one value can't do both. `-bright` is the
+   * swatch itself, used at size — a filled badge, a progress bar, an active
+   * chip — where it sits under dark ink and stays as saturated as it was
+   * picked. The plain token is the same hue pushed dark enough to be read as
+   * small text on a pale ground, which the swatches at their own mid tone
+   * cannot do. Pale silver is the ground rather than an accent: the page is
+   * sand, cards are near-white on top of it, and that is what carries the
+   * scheme across every screen rather than a few tinted details.
    */
-  --color-bone: #f8f4ec;
-  --color-bone-deep: #eee7d8;
-  --color-shell: #fffdf8;
-  --color-ink: #373502;
-  --color-ink-soft: #575330;
-  --color-muted: #77714c;
-  --color-line: #e2d9c6;
-  --color-berry: #b45874;
-  --color-berry-deep: #8c3a52;
-  --color-berry-soft: #f9e9ee;
-  --color-sage: #6a7519;
-  --color-sage-soft: #eef3d8;
-  --color-gold: #857038;
-  --color-gold-soft: #f2ebdc;
+  --color-bone: #ebe1cb;
+  --color-bone-deep: #dbcdac;
+  --color-shell: #fffdf6;
+  --color-ink: #2f2d02;
+  --color-ink-soft: #4d4a0e;
+  --color-muted: #635f2c;
+  --color-line: #d0c29f;
+
+  --color-berry: #b32f5c;
+  --color-berry-deep: #8c2047;
+  --color-berry-bright: #e3a7b7;
+  --color-berry-soft: #fbdde6;
+
+  --color-sage: #5a6608;
+  --color-sage-bright: #b1bd41;
+  --color-sage-soft: #e9f0c4;
+
+  --color-gold: #6f5c19;
+  --color-gold-bright: #d5c8b5;
+  --color-gold-soft: #f0e5cb;
   /* Readable text on a gold-soft chip — the accent itself is too pale there. */
-  --color-gold-ink: #6d5a32;
+  --color-gold-ink: #63521e;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -46,24 +57,30 @@
  */
 @layer theme {
   :root[data-theme="dark"] {
-    /* Dark is where the four swatches appear closest to as-picked: pullman
-       green becomes the ground, and chestnut, android green and pale silver
-       sit on it almost untouched. */
-    --color-bone: #16140b;
-    --color-bone-deep: #232009;
-    --color-shell: #201e0c;
-    --color-ink: #f3eee1;
-    --color-ink-soft: #d6cfb9;
-    --color-muted: #a09a7e;
-    --color-line: #38340f;
-    --color-berry: #e3a7b7;
-    --color-berry-deep: #efc2ce;
-    --color-berry-soft: #3a2229;
-    --color-sage: #b1bd41;
-    --color-sage-soft: #2b2e10;
+    /* Dark is pullman green all the way down, with the other three laid on
+       top at close to their picked values — chestnut and android green are
+       already bright enough to read here without deepening. */
+    --color-bone: #1b1904;
+    --color-bone-deep: #2a2708;
+    --color-shell: #262307;
+    --color-ink: #f4efdd;
+    --color-ink-soft: #ded7b9;
+    --color-muted: #a8a17c;
+    --color-line: #423d10;
+
+    --color-berry: #ee9db3;
+    --color-berry-deep: #f6c2d0;
+    --color-berry-bright: #e3a7b7;
+    --color-berry-soft: #45202f;
+
+    --color-sage: #bdc94e;
+    --color-sage-bright: #b1bd41;
+    --color-sage-soft: #313510;
+
     --color-gold: #d5c8b5;
-    --color-gold-soft: #302c1c;
-    --color-gold-ink: #ded3c0;
+    --color-gold-bright: #d5c8b5;
+    --color-gold-soft: #37311f;
+    --color-gold-ink: #e0d5c2;
   }
 }
 
@@ -80,17 +97,20 @@
     background-color: var(--color-bone);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    /* A whisper of texture so the cream doesn't read as flat grey. */
+    /* Chestnut and android green washed across the sand ground, strong
+       enough to see rather than to sense. */
     background-image:
-      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.30), transparent 42%),
-      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.16), transparent 38%);
+      radial-gradient(circle at 8% -8%, rgb(227 167 183 / 0.85), transparent 46%),
+      radial-gradient(circle at 96% 2%, rgb(177 189 65 / 0.55), transparent 42%),
+      radial-gradient(circle at 50% 118%, rgb(227 167 183 / 0.4), transparent 55%);
     background-attachment: fixed;
   }
 
   :root[data-theme="dark"] body {
     background-image:
-      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.10), transparent 45%),
-      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.08), transparent 40%);
+      radial-gradient(circle at 8% -8%, rgb(227 167 183 / 0.16), transparent 46%),
+      radial-gradient(circle at 96% 2%, rgb(177 189 65 / 0.13), transparent 42%),
+      radial-gradient(circle at 50% 118%, rgb(227 167 183 / 0.08), transparent 55%);
   }
 
   /* Native controls (date pickers, selects) inherit the surface, not white. */
@@ -99,8 +119,8 @@
   }
 
   ::selection {
-    background: var(--color-berry-soft);
-    color: var(--color-berry-deep);
+    background: var(--color-berry-bright);
+    color: var(--color-ink);
   }
 
   :focus-visible {
@@ -157,7 +177,7 @@
   .field:focus {
     outline: none;
     border-color: var(--color-berry);
-    box-shadow: 0 0 0 3px var(--color-berry-soft);
+    box-shadow: 0 0 0 3px var(--color-berry-bright);
   }
 
   .label {
@@ -191,16 +211,18 @@
     color: var(--color-berry-deep);
   }
 
+  /* Chips are the most-repeated element in the app, so the selected one is
+     where the android green earns its place — dark ink on the raw swatch. */
   .chip[data-active="true"] {
-    background: var(--color-ink);
-    border-color: var(--color-ink);
-    color: var(--color-bone);
+    background: var(--color-sage-bright);
+    border-color: var(--color-sage-bright);
+    color: var(--color-ink);
   }
 
   .chip[data-active="true"]:hover {
-    background: var(--color-berry-deep);
-    border-color: var(--color-berry-deep);
-    color: var(--color-bone);
+    background: var(--color-berry-bright);
+    border-color: var(--color-berry-bright);
+    color: var(--color-ink);
   }
 
   .btn-primary {
@@ -218,7 +240,7 @@
   }
 
   .btn-primary:hover {
-    background: var(--color-berry-deep);
+    background: var(--color-berry);
   }
 
   .btn-primary:active {
