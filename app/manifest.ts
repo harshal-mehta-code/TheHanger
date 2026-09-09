@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Catalogue every piece you own, see what you actually wear, and rediscover the rest.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fbf6f0",
-    theme_color: "#fbf6f0",
+    background_color: "#f8f4ec",
+    theme_color: "#f8f4ec",
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
       { src: "/apple-icon", sizes: "180x180", type: "image/png" },

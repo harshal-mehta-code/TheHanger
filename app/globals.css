@@ -4,31 +4,39 @@
   /* Narrowest phones need one more step below Tailwind's smallest default. */
   --breakpoint-xs: 25rem;
 
-  --color-bone: #fbf6f0;
-  --color-bone-deep: #f4ece2;
-  --color-shell: #ffffff;
-  --color-ink: #201a19;
-  --color-ink-soft: #4a403c;
-  --color-muted: #8c7f79;
-  --color-line: #ebe0d5;
-  --color-berry: #b23a62;
-  --color-berry-deep: #8e2c4c;
-  --color-berry-soft: #fbeaf0;
-  --color-sage: #6e8168;
-  --color-sage-soft: #edf2ea;
-  --color-gold: #c69b3e;
-  --color-gold-soft: #fbf1dc;
+  /**
+   * Four colours carry the whole app: pullman green (#373502) as the ink,
+   * pale chestnut (#e3a7b7) as the primary accent, android green (#b1bd41)
+   * as the second, and pale silver (#d5c8b5) as the warm neutral. The tokens
+   * below are those four lightened or deepened until each one is legible in
+   * the role it plays — the source swatches themselves sit at mid tone, so
+   * using them raw as text on a pale ground would not carry.
+   */
+  --color-bone: #f8f4ec;
+  --color-bone-deep: #eee7d8;
+  --color-shell: #fffdf8;
+  --color-ink: #373502;
+  --color-ink-soft: #575330;
+  --color-muted: #77714c;
+  --color-line: #e2d9c6;
+  --color-berry: #b45874;
+  --color-berry-deep: #8c3a52;
+  --color-berry-soft: #f9e9ee;
+  --color-sage: #6a7519;
+  --color-sage-soft: #eef3d8;
+  --color-gold: #857038;
+  --color-gold-soft: #f2ebdc;
   /* Readable text on a gold-soft chip — the accent itself is too pale there. */
-  --color-gold-ink: #8a6a1f;
+  --color-gold-ink: #6d5a32;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 
   --radius-card: 1.25rem;
 
-  --shadow-card: 0 1px 2px rgb(32 26 25 / 0.04), 0 8px 24px -12px rgb(32 26 25 / 0.14);
-  --shadow-lift: 0 2px 4px rgb(32 26 25 / 0.05), 0 18px 40px -16px rgb(32 26 25 / 0.28);
-  --shadow-sheet: 0 24px 70px -20px rgb(32 26 25 / 0.35);
+  --shadow-card: 0 1px 2px rgb(40 38 8 / 0.04), 0 8px 24px -12px rgb(40 38 8 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(40 38 8 / 0.05), 0 18px 40px -16px rgb(40 38 8 / 0.28);
+  --shadow-sheet: 0 24px 70px -20px rgb(40 38 8 / 0.35);
 }
 
 /**
@@ -38,21 +46,24 @@
  */
 @layer theme {
   :root[data-theme="dark"] {
-    --color-bone: #16130f;
-    --color-bone-deep: #221d18;
-    --color-shell: #1e1a16;
-    --color-ink: #f2eae0;
-    --color-ink-soft: #d3c7b9;
-    --color-muted: #9d9184;
-    --color-line: #322b24;
-    --color-berry: #e07d9c;
-    --color-berry-deep: #f0a3ba;
-    --color-berry-soft: #3a222b;
-    --color-sage: #9dbb93;
-    --color-sage-soft: #232c20;
-    --color-gold: #dcb464;
-    --color-gold-soft: #322913;
-    --color-gold-ink: #e8c47a;
+    /* Dark is where the four swatches appear closest to as-picked: pullman
+       green becomes the ground, and chestnut, android green and pale silver
+       sit on it almost untouched. */
+    --color-bone: #16140b;
+    --color-bone-deep: #232009;
+    --color-shell: #201e0c;
+    --color-ink: #f3eee1;
+    --color-ink-soft: #d6cfb9;
+    --color-muted: #a09a7e;
+    --color-line: #38340f;
+    --color-berry: #e3a7b7;
+    --color-berry-deep: #efc2ce;
+    --color-berry-soft: #3a2229;
+    --color-sage: #b1bd41;
+    --color-sage-soft: #2b2e10;
+    --color-gold: #d5c8b5;
+    --color-gold-soft: #302c1c;
+    --color-gold-ink: #ded3c0;
   }
 }
 
@@ -71,15 +82,15 @@
     font-family: var(--font-sans);
     /* A whisper of texture so the cream doesn't read as flat grey. */
     background-image:
-      radial-gradient(circle at 12% -5%, rgb(178 58 98 / 0.06), transparent 42%),
-      radial-gradient(circle at 92% 0%, rgb(198 155 62 / 0.07), transparent 38%);
+      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.30), transparent 42%),
+      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.16), transparent 38%);
     background-attachment: fixed;
   }
 
   :root[data-theme="dark"] body {
     background-image:
-      radial-gradient(circle at 12% -5%, rgb(224 125 156 / 0.09), transparent 45%),
-      radial-gradient(circle at 92% 0%, rgb(220 180 100 / 0.07), transparent 40%);
+      radial-gradient(circle at 12% -5%, rgb(227 167 183 / 0.10), transparent 45%),
+      radial-gradient(circle at 92% 0%, rgb(177 189 65 / 0.08), transparent 40%);
   }
 
   /* Native controls (date pickers, selects) inherit the surface, not white. */
